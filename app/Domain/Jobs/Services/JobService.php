@@ -183,7 +183,8 @@ class JobService
             }
         }
 
-        Reservation::query()->where('job_id', $job->id)->whereNotIn('id', $keep)->delete();
+        // Only job-generated holds are managed here; standalone holds linked to the job are left alone.
+        Reservation::query()->where('job_id', $job->id)->whereNotNull('job_item_id')->whereNotIn('id', $keep)->delete();
     }
 
     /**

@@ -39,7 +39,7 @@ final class BlockCompiler
 
         return match ($type) {
             'heading' => sprintf('<h%1$d %2$s>%3$s</h%1$d>', min(4, max(1, (int) ($p['level'] ?? 1))), $attrs, $this->inline((string) ($p['text'] ?? ''))),
-            'text' => sprintf('<div %s>%s</div>', $attrs, (string) ($p['html'] ?? '')),
+            'text' => sprintf('<div %s>%s</div>', $attrs, $this->decodeTags((string) ($p['html'] ?? ''))),
             'logo' => sprintf('<div %s>{%% if organization.logo_url %%}<img src="{{ organization.logo_url }}" alt="{{ organization.name }}" style="max-height:%dpx">{%% else %%}<strong class="st-org">{{ organization.name }}</strong>{%% endif %%}</div>', $attrs, (int) ($p['height'] ?? 64)),
             'image' => sprintf('<div %s><img src="%s" alt="%s" style="max-width:100%%;width:%s"></div>', $attrs, $this->attr((string) ($p['src'] ?? '')), $this->attr((string) ($p['alt'] ?? '')), preg_match('/^\d{1,4}(\.\d+)?(%|px|mm)$/', (string) ($p['width'] ?? '')) ? $p['width'] : 'auto'),
             'fields' => $this->fields($attrs, $p),
@@ -51,7 +51,7 @@ final class BlockCompiler
             'page_break' => '<div class="st-page-break" style="page-break-after:always"></div>',
             'columns' => $this->columns($attrs, $p),
             'conditional' => sprintf("{%% if %s %%}<div %s>%s</div>{%% endif %%}", $this->expr($p['condition'] ?? 'true'), $attrs, $this->compile($p['blocks'] ?? [])),
-            'html' => (string) ($p['html'] ?? ''),
+            'html' => $this->decodeTags((string) ($p['html'] ?? '')),
             default => '',
         };
     }
@@ -125,7 +125,7 @@ final class BlockCompiler
     {
         $boxes = '';
         foreach ($p['lines'] ?? [['label' => $p['label'] ?? 'Signature']] as $line) {
-            $boxes .= sprintf('<div class="st-signature-box"><div class="st-signature-line"></div><div class="st-signature-label">%s</div>%s</div>', $this->text((string) ($line['label'] ?? 'Signature')), ! empty($p['show_date']) ? '<div class="st-signature-label">Date: ____________</div>' : '');
+            $boxes .= sprintf('<div class="st-signature-box"><div class="st-signature-line"></div><div class="st-signature-label">%s</div>%s</div>', $this->inline((string) ($line['label'] ?? 'Signature')), ! empty($p['show_date']) ? '<div class="st-signature-label">Date: ____________</div>' : '');
         }
 
         return sprintf('<div %s><div class="st-signatures">%s</div></div>', $attrs, $boxes);
@@ -180,6 +180,19 @@ final class BlockCompiler
         ));
     }
 
+    /**
+     * Rich-text editors serialise "{% if a > 1 %}" as "{% if a &gt; 1 %}"; decode
+     * entities inside template tags so expressions written in the visual editor parse.
+     */
+    private function decodeTags(string $html): string
+    {
+        return preg_replace_callback(
+            '/\{\{.*?\}\}|\{%.*?%\}/s',
+            fn ($m) => str_replace("\u{00A0}", ' ', html_entity_decode($m[0], ENT_QUOTES | ENT_HTML5, 'UTF-8')),
+            $html,
+        ) ?? $html;
+    }
+
     private function text(string $s): string
     {
         return str_replace(['{', '}'], ['&#123;', '&#125;'], htmlspecialchars($s, ENT_QUOTES, 'UTF-8'));
@@ -203,6 +216,14 @@ final class BlockCompiler
             'bold' => fn ($v) => $v ? 'font-weight:700' : null,
             'italic' => fn ($v) => $v ? 'font-style:italic' : null,
             'border' => fn ($v) => $v ? 'border:1px solid #d4d4d8' : null,
+            'underline' => fn ($v) => $v ? 'text-decoration:underline' : null,
+            'uppercase' => fn ($v) => $v ? 'text-transform:uppercase' : null,
+            'fontFamily' => fn ($v) => match ($v) {
+                'serif' => 'font-family:"DejaVu Serif",Georgia,serif',
+                'mono' => 'font-family:"DejaVu Sans Mono",monospace',
+                'sans' => 'font-family:"DejaVu Sans",Helvetica,Arial,sans-serif',
+                default => null,
+            },
         ];
         $out = [];
         foreach ($map as $key => $fn) {

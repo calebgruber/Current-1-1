@@ -49,6 +49,7 @@ class ReservationService
 
         $reservation->fill([
             'product_id' => $product->id,
+            'job_id' => array_key_exists('job_id', $data) ? ($data['job_id'] ?: null) : $reservation->job_id,
             'name' => $data['name'] ?? null,
             'quantity' => (int) $data['quantity'],
             'spare_quantity' => (int) ($data['spare_quantity'] ?? 0),

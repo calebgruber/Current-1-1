@@ -9,11 +9,13 @@ use App\Domain\Rules\DTOs\RuleFinding;
  *
  * A line describes one allocation:
  *   [product_id, product, categories => list<int> (category + ancestors),
- *    tags => list<string>, required => int, spare => int]
+ *    tags => list<string>, custom => array<string, mixed> (product custom fields),
+ *    required => int, spare => int]
  *
  * A rule definition (authored in the no-code builder):
  *   {
- *     "scope":       {"match": "category|tag|product|any", "values": [...]},
+ *     "scope":       {"match": "category|tag|product|name|custom_field|any", "values": [...],
+ *                     "field": "<custom field key>", "operator": "is|contains"},
  *     "check":       "requires|requires_any|max_quantity|min_spares",
  *     "requirement": {"match": "category|tag|product", "values": [...],
  *                     "per": 1, "quantity": 1, "ratio": 0.1},
@@ -27,7 +29,12 @@ final class RuleEvaluator
 {
     public const CHECKS = ['requires', 'requires_any', 'max_quantity', 'min_spares'];
 
-    public const MATCHES = ['category', 'tag', 'product', 'any'];
+    public const MATCHES = ['category', 'tag', 'product', 'name', 'custom_field', 'any'];
+
+    /** Selectors usable for the supporting-equipment requirement. */
+    public const REQUIREMENT_MATCHES = ['category', 'tag', 'product', 'name', 'custom_field'];
+
+    public const OPERATORS = ['is', 'contains'];
 
     public const SEVERITIES = ['info', 'warning', 'error'];
 
@@ -107,6 +114,8 @@ final class RuleEvaluator
             $errors[] = 'Choose which equipment the rule applies to.';
         } elseif (($scope['match'] ?? null) !== 'any' && empty($scope['values'])) {
             $errors[] = 'Pick at least one category, tag or product for the rule scope.';
+        } elseif ($error = $this->selectorError($scope, 'scope')) {
+            $errors[] = $error;
         }
         $check = $definition['check'] ?? null;
         if (! in_array($check, self::CHECKS, true)) {
@@ -114,8 +123,10 @@ final class RuleEvaluator
         }
         $req = $definition['requirement'] ?? [];
         if (in_array($check, ['requires', 'requires_any'], true)) {
-            if (! in_array($req['match'] ?? null, ['category', 'tag', 'product'], true) || empty($req['values'])) {
+            if (! in_array($req['match'] ?? null, self::REQUIREMENT_MATCHES, true) || empty($req['values'])) {
                 $errors[] = 'Choose the supporting equipment that must be present.';
+            } elseif ($error = $this->selectorError($req, 'requirement')) {
+                $errors[] = $error;
             }
             if ((float) ($req['per'] ?? 1) <= 0) {
                 $errors[] = '"Per" must be greater than zero.';
@@ -129,6 +140,18 @@ final class RuleEvaluator
         }
 
         return $errors;
+    }
+
+    private function selectorError(array $selector, string $where): ?string
+    {
+        if (isset($selector['operator']) && ! in_array($selector['operator'], self::OPERATORS, true)) {
+            return "Unknown comparison in the {$where}.";
+        }
+        if (($selector['match'] ?? null) === 'custom_field' && ! preg_match('/^[a-z][a-z0-9_]{0,63}$/', (string) ($selector['field'] ?? ''))) {
+            return "Choose the custom field used in the {$where}.";
+        }
+
+        return null;
     }
 
     private function evaluateRule(array $lines, array $rule): ?RuleFinding
@@ -221,8 +244,36 @@ final class RuleEvaluator
             'product' => in_array((string) $line['product_id'], $values, true),
             'category' => array_intersect(array_map('strval', $line['categories'] ?? []), $values) !== [],
             'tag' => array_intersect(array_map(fn ($t) => mb_strtolower((string) $t), $line['tags'] ?? []), array_map('mb_strtolower', $values)) !== [],
+            'name' => $this->textMatches((string) ($line['product'] ?? ''), $values, $selector['operator'] ?? 'contains'),
+            'custom_field' => $this->textMatches($line['custom'][(string) ($selector['field'] ?? '')] ?? null, $values, $selector['operator'] ?? 'is'),
             default => false,
         };
+    }
+
+    /** Case-insensitive "is"/"contains" comparison; list values (multi-select) match if any element matches. */
+    private function textMatches(mixed $actual, array $values, string $operator): bool
+    {
+        if ($actual === null || $actual === '' || $values === []) {
+            return false;
+        }
+        $candidates = is_array($actual) ? $actual : [$actual];
+        foreach ($candidates as $candidate) {
+            if (is_array($candidate)) {
+                continue;
+            }
+            $candidate = mb_strtolower(is_bool($candidate) ? ($candidate ? 'yes' : 'no') : (string) $candidate);
+            foreach ($values as $value) {
+                $value = mb_strtolower(trim($value));
+                if ($value === '') {
+                    continue;
+                }
+                if ($operator === 'contains' ? str_contains($candidate, $value) : $candidate === $value) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function qty(array $line, string $basis): int

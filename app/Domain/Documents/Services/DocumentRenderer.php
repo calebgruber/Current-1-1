@@ -26,7 +26,7 @@ final class DocumentRenderer
     ) {}
 
     /**
-     * @param  array{editor?: string, blocks?: ?array, html?: ?string, css?: ?string, paper_size?: ?string, orientation?: ?string, watermark?: ?string}  $template
+     * @param  array{editor?: string, blocks?: ?array, html?: ?string, css?: ?string, paper_size?: ?string, orientation?: ?string, watermark?: ?string, margins?: ?array}  $template
      */
     public function source(array $template): string
     {
@@ -60,7 +60,7 @@ final class DocumentRenderer
         }
 
         return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'</title>'
-            .'<style>@page{size:'.$paper.' '.$orientation.';margin:14mm 12mm}'.self::baseCss().'</style>'
+            .'<style>@page{size:'.$paper.' '.$orientation.';margin:'.self::margins($template['margins'] ?? null).'}'.self::baseCss().'</style>'
             .($css !== '' ? '<style>'.$css.'</style>' : '')
             .'</head><body>'
             .($watermark !== '' ? '<div class="st-watermark">'.$watermark.'</div>' : '')
@@ -69,7 +69,21 @@ final class DocumentRenderer
 
     public function documentFor(DocumentTemplate $template, array $context, string $title = 'Document'): string
     {
-        return $this->document($template->only(['editor', 'blocks', 'html', 'css', 'paper_size', 'orientation', 'watermark']), $context, $title);
+        return $this->document($template->only(['editor', 'blocks', 'html', 'css', 'paper_size', 'orientation', 'watermark', 'margins']), $context, $title);
+    }
+
+    /** CSS margin shorthand from {top,right,bottom,left} millimetres (0–50), defaulting to 14mm 12mm. */
+    public static function margins(?array $margins): string
+    {
+        $defaults = ['top' => 14, 'right' => 12, 'bottom' => 14, 'left' => 12];
+        $out = [];
+        foreach ($defaults as $side => $default) {
+            $value = $margins[$side] ?? $default;
+            $value = is_numeric($value) ? max(0, min(50, (float) $value)) : $default;
+            $out[] = round($value, 1).'mm';
+        }
+
+        return implode(' ', $out);
     }
 
     /** @return string PDF bytes */

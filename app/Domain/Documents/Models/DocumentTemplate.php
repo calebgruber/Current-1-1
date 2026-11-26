@@ -29,12 +29,12 @@ class DocumentTemplate extends Model
 
     protected $fillable = [
         'name', 'type', 'entity_type', 'editor', 'blocks', 'html', 'css', 'paper_size', 'orientation',
-        'watermark', 'is_default', 'version', 'updated_by',
+        'margins', 'watermark', 'is_default', 'version', 'updated_by',
     ];
 
     protected function casts(): array
     {
-        return ['blocks' => 'array', 'is_default' => 'boolean', 'version' => 'integer'];
+        return ['blocks' => 'array', 'margins' => 'array', 'is_default' => 'boolean', 'version' => 'integer'];
     }
 
     public function documents(): HasMany

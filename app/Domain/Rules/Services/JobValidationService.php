@@ -15,7 +15,7 @@ class JobValidationService
     /** @return list<RuleFinding> */
     public function validate(ProductionJob $job, ?array $rules = null): array
     {
-        $items = $job->items()->with(['product.tags', 'product.accessories.accessory'])->get();
+        $items = $job->items()->with(['product.tags', 'product.accessories.accessory', 'product.customFieldValues.definition'])->get();
         $lines = $this->lines($items);
 
         $accessories = [];
@@ -53,6 +53,7 @@ class JobValidationService
             'product' => $i->product->name,
             'categories' => $i->product->category_id ? ($ancestors[$i->product->category_id] ?? [$i->product->category_id]) : [],
             'tags' => $i->product->tags->flatMap(fn ($t) => [$t->name, $t->slug])->all(),
+            'custom' => $i->product->customFields(),
             'required' => (int) $i->required_quantity,
             'spare' => (int) $i->spare_quantity,
         ])->values()->all();

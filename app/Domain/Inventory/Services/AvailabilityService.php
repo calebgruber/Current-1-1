@@ -112,7 +112,7 @@ class AvailabilityService
                     'location_id' => $locationId ?: null,
                     'location' => $assets->first()->location?->path() ?? 'Unassigned',
                     'quantity' => $assets->count(),
-                    'url' => $locationId ? '/locations/'.$locationId : null,
+                    'url' => $locationId ? '/inventory/locations/'.$locationId : null,
                 ])->values()->all();
         }
 
@@ -121,7 +121,7 @@ class AvailabilityService
                 'location_id' => $s->location_id,
                 'location' => $s->location?->path() ?? 'Unassigned',
                 'quantity' => (int) $s->quantity,
-                'url' => $s->location_id ? '/locations/'.$s->location_id : null,
+                'url' => $s->location_id ? '/inventory/locations/'.$s->location_id : null,
             ])->all();
     }
 
@@ -208,7 +208,7 @@ class AvailabilityService
                         continue;
                     }
                     $explained += $qty;
-                    $unserviceable[$pid][$bucket][] = new AllocationSource('location', $level->location_id, ($level->location?->name ?? 'Unassigned').' — '.$bucket, $qty, $level->location_id ? '/locations/'.$level->location_id : null);
+                    $unserviceable[$pid][$bucket][] = new AllocationSource('location', $level->location_id, ($level->location?->name ?? 'Unassigned').' — '.$bucket, $qty, $level->location_id ? '/inventory/locations/'.$level->location_id : null);
                 }
             }
         }
