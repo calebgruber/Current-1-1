@@ -5,11 +5,14 @@ import Combobox from '@/Components/ui/Combobox.vue';
 import CustomFieldInputs from '@/Components/custom-fields/CustomFieldInputs.vue';
 import { useFormat } from '@/composables/useFormat';
 import { localDateTimeToUtc } from '@/lib/localDateTime';
+import { usePermissions } from '@/composables/usePermissions';
+import { SlidersHorizontal } from 'lucide-vue-next';
 import type { CustomFieldSchema } from '@/types';
 
 type Job = { id: number; name: string; description: string | null; workflow_status: string | null; color: string | null; client_contact_id: number | null; venue_location_id: number | null; owner_id: number | null; client_label: string | null; venue_label: string | null; owner_label: string | null; prep_starts_at: string | null; starts_at: string | null; ends_at: string | null; returns_at: string | null };
 const props = defineProps<{ job: Job | null; contacts: { contact_id: number; role: string | null }[]; customFieldSchema: CustomFieldSchema[]; customFields: Record<string, any>; confirmedHold: boolean }>();
 const { toLocalInput } = useFormat();
+const { can } = usePermissions();
 const initialDates = {
     prep_starts_at: toLocalInput(props.job?.prep_starts_at),
     starts_at: toLocalInput(props.job?.starts_at),
@@ -20,7 +23,7 @@ const form = useForm({
     name: props.job?.name ?? '', description: props.job?.description ?? '', workflow_status: props.job?.workflow_status ?? '', color: props.job?.color ?? '',
     client_contact_id: props.job?.client_contact_id ?? null as number | string | null, venue_location_id: props.job?.venue_location_id ?? null as number | string | null, owner_id: props.job?.owner_id ?? null as number | string | null,
     ...initialDates,
-    contacts: props.contacts, custom_fields: { ...props.customFields }, override: false, override_reason: '',
+    contacts: props.contacts, custom_fields: { ...Object.fromEntries(props.customFieldSchema.filter((field) => field.required).map((field) => [field.key, null])), ...props.customFields }, override: false, override_reason: '',
 });
 form.transform((data) => ({
     ...data,
@@ -48,7 +51,14 @@ const submit = () => props.job ? form.put(route('jobs.update', props.job.id)) : 
             <label>Return <input v-model="form.returns_at" type="datetime-local" class="st-input"></label>
         </div>
         <label class="block">Description <textarea v-model="form.description" class="st-input" rows="4" /></label>
-        <CustomFieldInputs v-model="form.custom_fields" :schema="customFieldSchema" :errors="form.errors" />
+        <section class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="font-semibold">Custom fields</h2>
+                <Link v-if="can('settings.custom_fields.view') && route().has('settings.custom-fields.index')" class="st-link inline-flex items-center gap-1" :href="route('settings.custom-fields.index')"><SlidersHorizontal class="size-4" aria-hidden="true" /> Manage fields</Link>
+            </div>
+            <CustomFieldInputs v-if="customFieldSchema.length" v-model="form.custom_fields" :schema="customFieldSchema" :errors="form.errors" />
+            <p v-else class="text-sm text-muted">No custom fields configured for jobs.</p>
+        </section>
         <div v-if="confirmedHold && $page.props.auth && job">
             <label><input v-model="form.override" type="checkbox"> Override overbooking (requires permission)</label>
             <label v-if="form.override" class="block">Reason <input v-model="form.override_reason" class="st-input" required minlength="5"></label>

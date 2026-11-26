@@ -112,6 +112,10 @@ Permissions below are the catalog keys from [PERMISSIONS.md](PERMISSIONS.md); ta
 
 **Responsibility.** Product catalogue (serialized or bulk tracking), categories tree, manufacturers, tags, product images, product accessories, locations tree, bulk stock levels per location, and **availability**.
 
+Categories support arbitrary nesting. Editors can drag a category before another category, inside it, or to the end of the top level; Up/Down and Move controls offer the same operations by keyboard. Moves preserve the subtree, affect only the destination sibling ordering, and reject stale edits or cycles. Deleting a category reparents its children to its parent; products must be moved first. Category deletion and product assignment serialize on the category row to protect assignments.
+
+Product tracking is selected on creation and cannot be changed afterwards. Tags and parent-product accessories can be edited on the product form. Alternatives are explicit, directional associations for reference only; they do not automatically substitute products. Editing accessories or alternatives also requires `inventory.products.view`. Unchanged relationship fields are not submitted on edit, preserving concurrent changes; an edited list replaces that relationship. Deleted associated products must be removed before saving changes to that list.
+
 | Kind | Classes |
 |---|---|
 | Models | `Product`, `Category`, `Manufacturer`, `Tag` (polymorphic `taggables`), `ProductImage`, `ProductAccessory`, `Location`, `StockLevel` |

@@ -16,7 +16,7 @@ class HierarchyOptions
     /** @return list<array{value: int, label: string, depth: int}> */
     public function categories(): array
     {
-        return $this->flatten(Category::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'parent_id', 'name']));
+        return $this->flatten(Category::query()->orderBy('sort_order')->orderBy('name')->orderBy('id')->get(['id', 'parent_id', 'name']));
     }
 
     /** @return list<array{value: int, label: string, depth: int, type: string}> */
@@ -38,20 +38,19 @@ class HierarchyOptions
     public function descendantIds(string $modelClass, int $id): array
     {
         $byParent = $modelClass::query()->get(['id', 'parent_id'])->groupBy('parent_id');
-        $out = [$id];
+        $out = [$id => true];
         $queue = [$id];
-        $guard = 0;
-        while ($queue && $guard++ < 10000) {
-            $current = array_shift($queue);
+        for ($i = 0; $i < count($queue); $i++) {
+            $current = $queue[$i];
             foreach ($byParent->get($current, collect()) as $child) {
-                if (! in_array($child->id, $out, true)) {
-                    $out[] = $child->id;
+                if (! isset($out[$child->id])) {
+                    $out[$child->id] = true;
                     $queue[] = $child->id;
                 }
             }
         }
 
-        return $out;
+        return array_keys($out);
     }
 
     /** Whether making $parentId the parent of $id would create a cycle. */
@@ -63,25 +62,33 @@ class HierarchyOptions
     private function flatten(Collection $rows, ?callable $extra = null): array
     {
         $byParent = $rows->groupBy(fn ($r) => $r->parent_id ?? 0);
-        $ids = $rows->pluck('id')->all();
+        $ids = array_fill_keys($rows->pluck('id')->all(), true);
         $out = [];
-        $walk = function ($parentId, string $prefix, int $depth) use (&$walk, &$out, $byParent, $extra) {
-            foreach ($byParent->get($parentId, collect()) as $row) {
+        $visited = [];
+        $walk = function ($roots) use (&$out, &$visited, $byParent, $extra) {
+            $stack = [];
+            foreach ($roots->reverse() as $row) {
+                $stack[] = [$row, '', 0];
+            }
+            while ($stack) {
+                [$row, $prefix, $depth] = array_pop($stack);
+                if (isset($visited[$row->id])) {
+                    continue;
+                }
+                $visited[$row->id] = true;
                 $label = $prefix === '' ? $row->name : $prefix.' › '.$row->name;
                 $out[] = ['value' => $row->id, 'label' => $label, 'depth' => $depth] + ($extra ? $extra($row) : []);
-                if ($depth < 16) {
-                    $walk($row->id, $label, $depth + 1);
+                foreach ($byParent->get($row->id, collect())->reverse() as $child) {
+                    $stack[] = [$child, $label, $depth + 1];
                 }
             }
         };
-        $walk(0, '', 0);
+        $walk($byParent->get(0, collect()));
 
         // Orphans (parent missing) are still listed at the root.
-        foreach ($rows as $row) {
-            if ($row->parent_id && ! in_array($row->parent_id, $ids, true)) {
-                $out[] = ['value' => $row->id, 'label' => $row->name, 'depth' => 0] + ($extra ? $extra($row) : []);
-            }
-        }
+        $walk($rows->filter(fn ($row) => $row->parent_id && ! isset($ids[$row->parent_id])));
+        // Keep corrupt cyclic components visible without looping indefinitely.
+        $walk($rows->filter(fn ($row) => ! isset($visited[$row->id])));
 
         return $out;
     }

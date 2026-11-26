@@ -196,6 +196,7 @@ These routes are registered by the `laravel/passkeys` package and used unchanged
 | GET | `/inventory/products/{product}` | `inventory.products.show` | `inventory.products.view` | `Inventory/Show`. Props `{product, accessories, assets, stock_levels, availability, upcoming, custom_fields}` |
 | GET | `/inventory/products/{product}/edit` | `inventory.products.edit` | `inventory.products.edit` | `Inventory/Form` |
 | PUT | `/inventory/products/{product}` | `inventory.products.update` | `inventory.products.edit` | |
+| PATCH | `/inventory/products/bulk` | `inventory.products.bulk` | `inventory.products.edit` | `{product_ids: [1, …], changes: {category_id?, is_active?}}`; 1–100 distinct, non-deleted products. `category_id: null` explicitly clears the category. Only these fields are accepted; all changes and per-product audits are transactional. |
 | DELETE | `/inventory/products/{product}` | `inventory.products.destroy` | `inventory.products.delete` | Soft delete |
 | POST | `/inventory/products/{product}/images` | `inventory.products.images.store` | `inventory.products.edit` | multipart `image` |
 | DELETE | `/inventory/products/{product}/images/{image}` | `inventory.products.images.destroy` | `inventory.products.edit` | |
@@ -206,7 +207,8 @@ These routes are registered by the `laravel/passkeys` package and used unchanged
 | GET | `/inventory/availability/data` | `inventory.availability.data` | `inventory.availability.view` | JSON (below) |
 | GET | `/inventory/products/{product}/availability` | `inventory.products.availability` | `inventory.availability.view` | JSON breakdown + timeline |
 | GET | `/inventory/categories` | `inventory.categories.index` | `inventory.categories.view` | `Inventory/Categories` (tree) |
-| POST/PUT/DELETE | `/inventory/categories[/{category}]` | `inventory.categories.store/update/destroy` | `inventory.categories.create/edit/delete` | `{name, parent_id, description, sort_order}` |
+| POST/PUT/DELETE | `/inventory/categories[/{category}]` | `inventory.categories.store/update/destroy` | `inventory.categories.create/edit/delete` | `{name, parent_id, color, icon, sort_order}` |
+| PUT | `/inventory/categories/move` | `inventory.categories.move` | `inventory.categories.edit` | `{id, parent_id, before_id, version}`; null parent means top level and null before means append. Uses the `treeVersion` from the category page; stale requests and cycles are rejected. |
 | GET | `/inventory/manufacturers` | `inventory.manufacturers.index` | `inventory.categories.view` | `Inventory/Manufacturers` |
 | POST/PUT/DELETE | `/inventory/manufacturers[/{manufacturer}]` | `inventory.manufacturers.*` | `inventory.categories.*` | |
 | GET | `/inventory/locations` | `inventory.locations.index` | `inventory.locations.view` | `Inventory/Locations` (tree) |

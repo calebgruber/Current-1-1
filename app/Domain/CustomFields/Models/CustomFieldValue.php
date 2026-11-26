@@ -35,10 +35,14 @@ class CustomFieldValue extends Model
         }
         $column = $type->storageColumn();
         $columns[$column] = match ($column) {
-            'value_number' => (float) $value,
+            'value_number' => in_array($type, [CustomFieldType::Number, CustomFieldType::Currency], true) ? (string) $value : (float) $value,
             'value_json' => is_array($value) ? $value : ['value' => $value],
             default => is_scalar($value) ? (string) $value : json_encode($value),
         };
+        if (in_array($type, [CustomFieldType::Number, CustomFieldType::Currency], true)) {
+            // SQLite stores DECIMAL values as floating point; retain the exact form value as well.
+            $columns['value_text'] = (string) $value;
+        }
 
         return $columns;
     }
@@ -46,9 +50,10 @@ class CustomFieldValue extends Model
     public function typedValue(): mixed
     {
         $type = $this->definition?->type;
+        $number = $this->getAttributes()['value_number'] ?? null;
 
         return match ($type) {
-            CustomFieldType::Number, CustomFieldType::Currency => $this->value_number,
+            CustomFieldType::Number, CustomFieldType::Currency => $number !== null ? (string) ($this->value_text ?? $number) : null,
             CustomFieldType::User, CustomFieldType::Asset => $this->value_number !== null ? (int) $this->value_number : null,
             CustomFieldType::Date => $this->value_date?->toDateString(),
             CustomFieldType::DateTime => $this->value_date?->toIso8601String(),

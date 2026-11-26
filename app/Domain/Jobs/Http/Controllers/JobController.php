@@ -232,7 +232,10 @@ class JobController extends Controller
 
     public function update(JobRequest $request, ProductionJob $job, JobService $jobs, AllocationGuard $guard, SettingsRepository $settings): RedirectResponse
     {
-        $clean = $this->customFields->validate('job', $request->input('custom_fields', []) ?? [], partial: false);
+        $submitted = $request->input('custom_fields', []) ?? [];
+        $effective = array_replace($job->customFields(), $submitted);
+        $validated = $this->customFields->validate('job', $effective, partial: false);
+        $clean = array_intersect_key($validated, $submitted);
         $job->fill($request->jobAttributes());
         $datesChanged = $job->isDirty(['prep_starts_at', 'starts_at', 'ends_at', 'returns_at']);
 

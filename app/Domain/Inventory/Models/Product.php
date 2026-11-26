@@ -87,6 +87,11 @@ class Product extends Model
             ->withPivot(['quantity', 'type', 'auto_add', 'notes']);
     }
 
+    public function alternatives(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'product_alternatives', 'product_id', 'alternative_product_id');
+    }
+
     public function tags(): MorphToMany
     {
         return $this->morphToMany(Tag::class, 'taggable');

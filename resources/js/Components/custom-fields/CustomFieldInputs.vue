@@ -15,6 +15,7 @@ import Combobox from '@/Components/ui/Combobox.vue';
 import { http, errorMessage } from '@/lib/http';
 import { useToast } from '@/composables/useToast';
 import { useFormat } from '@/composables/useFormat';
+import { customFieldValue } from '@/lib/customFieldValue';
 import type { CustomFieldSchema } from '@/types';
 
 const model = defineModel<Record<string, any>>({ required: true });
@@ -37,13 +38,14 @@ const groups = computed(() => {
 const optionsOf = (f: CustomFieldSchema) => f.options.map((o) => (typeof o === 'string' ? { value: o, label: o } : o));
 const errorOf = (f: CustomFieldSchema) => props.errors?.[`custom_fields.${f.key}`] ?? null;
 const set = (key: string, value: unknown) => (model.value = { ...model.value, [key]: value });
+const valueOf = (key: string) => customFieldValue(model.value, key);
 const relationTypes = (f: CustomFieldSchema) => {
     const allowed = (f.validation.allowed as string[] | undefined) ?? (f.validation.entity ? [f.validation.entity as string] : []);
     return allowed.length ? allowed : ['product', 'asset', 'job', 'contact', 'location'];
 };
 
 const toggleMulti = (f: CustomFieldSchema, value: string, on: boolean) => {
-    const current: string[] = Array.isArray(model.value[f.key]) ? [...model.value[f.key]] : [];
+    const current: string[] = Array.isArray(valueOf(f.key)) ? [...valueOf(f.key)] : [];
     set(f.key, on ? [...new Set([...current, value])] : current.filter((v) => v !== value));
 };
 
@@ -63,7 +65,7 @@ const upload = async (f: CustomFieldSchema, event: Event) => {
     }
 };
 
-const relationValue = (f: CustomFieldSchema) => (model.value[f.key] as { type: string; id: number } | null) ?? null;
+const relationValue = (f: CustomFieldSchema) => (valueOf(f.key) as { type: string; id: number } | null) ?? null;
 const setRelation = (f: CustomFieldSchema, patch: Partial<{ type: string; id: number | null }>) => {
     const current = relationValue(f) ?? { type: relationTypes(f)[0], id: null };
     const next = { ...current, ...patch };
@@ -85,32 +87,29 @@ const setRelation = (f: CustomFieldSchema, patch: Partial<{ type: string; id: nu
                     :required="f.required"
                     :class="f.type === 'long_text' || f.type === 'multi_select' ? 'sm:col-span-2' : ''"
                 >
-                    <TextInput v-if="f.type === 'text'" :id="`cf-${f.key}`" :model-value="model[f.key] ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
-                    <TextInput v-else-if="f.type === 'url'" :id="`cf-${f.key}`" type="url" :placeholder="urlPlaceholder" :model-value="model[f.key] ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
-                    <TextareaInput v-else-if="f.type === 'long_text'" :id="`cf-${f.key}`" :rows="3" :model-value="model[f.key] ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
-                    <TextInput v-else-if="f.type === 'number'" :id="`cf-${f.key}`" type="number" step="any" :model-value="model[f.key] ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
-                    <div v-else-if="f.type === 'currency'" class="relative">
-                        <span class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-faint">$</span>
-                        <TextInput :id="`cf-${f.key}`" type="number" step="0.01" class="pl-6" :model-value="model[f.key] ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
-                    </div>
-                    <TextInput v-else-if="f.type === 'date'" :id="`cf-${f.key}`" type="date" :model-value="model[f.key] ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
-                    <TextInput v-else-if="f.type === 'datetime'" :id="`cf-${f.key}`" type="datetime-local" :model-value="toLocalInput(model[f.key])" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
-                    <Checkbox v-else-if="f.type === 'checkbox'" :model-value="!!model[f.key]" :label="f.label" @update:model-value="set(f.key, $event)" />
-                    <SelectInput v-else-if="f.type === 'dropdown'" :id="`cf-${f.key}`" :options="optionsOf(f)" placeholder="—" :model-value="model[f.key] ?? null" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <TextInput v-if="f.type === 'text'" :id="`cf-${f.key}`" :model-value="valueOf(f.key) ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <TextInput v-else-if="f.type === 'url'" :id="`cf-${f.key}`" type="url" :placeholder="urlPlaceholder" :model-value="valueOf(f.key) ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <TextareaInput v-else-if="f.type === 'long_text'" :id="`cf-${f.key}`" :rows="3" :model-value="valueOf(f.key) ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <TextInput v-else-if="f.type === 'number'" :id="`cf-${f.key}`" type="text" inputmode="decimal" :model-value="valueOf(f.key) ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <TextInput v-else-if="f.type === 'currency'" :id="`cf-${f.key}`" type="text" inputmode="decimal" :model-value="valueOf(f.key) ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <TextInput v-else-if="f.type === 'date'" :id="`cf-${f.key}`" type="date" :model-value="valueOf(f.key) ?? ''" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <TextInput v-else-if="f.type === 'datetime'" :id="`cf-${f.key}`" type="datetime-local" :model-value="toLocalInput(valueOf(f.key))" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
+                    <Checkbox v-else-if="f.type === 'checkbox'" :model-value="!!valueOf(f.key)" :label="f.label" @update:model-value="set(f.key, $event)" />
+                    <SelectInput v-else-if="f.type === 'dropdown'" :id="`cf-${f.key}`" :options="optionsOf(f)" placeholder="—" :model-value="valueOf(f.key) ?? null" :invalid="!!errorOf(f)" @update:model-value="set(f.key, $event)" />
                     <div v-else-if="f.type === 'multi_select'" class="flex flex-wrap gap-x-4 gap-y-2">
                         <Checkbox
                             v-for="o in optionsOf(f)"
                             :key="o.value"
                             :label="o.label"
-                            :model-value="Array.isArray(model[f.key]) && model[f.key].includes(o.value)"
+                            :model-value="Array.isArray(valueOf(f.key)) && valueOf(f.key).includes(o.value)"
                             @update:model-value="toggleMulti(f, o.value, !!$event)"
                         />
                     </div>
                     <Combobox
                         v-else-if="f.type === 'user' || f.type === 'asset'"
                         :endpoint="route('custom-fields.lookup', { type: f.type })"
-                        :model-value="model[f.key] ?? null"
-                        :initial-label="model[`${f.key}__label`] ?? (model[f.key] ? `#${model[f.key]}` : null)"
+                        :model-value="valueOf(f.key) ?? null"
+                        :initial-label="valueOf(`${f.key}__label`) ?? (valueOf(f.key) ? `#${valueOf(f.key)}` : null)"
                         :invalid="!!errorOf(f)"
                         @update:model-value="set(f.key, $event)"
                     />
@@ -131,9 +130,9 @@ const setRelation = (f: CustomFieldSchema, patch: Partial<{ type: string; id: nu
                         />
                     </div>
                     <div v-else-if="f.type === 'file'">
-                        <div v-if="model[f.key]?.path" class="flex items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-sm">
+                        <div v-if="valueOf(f.key)?.path" class="flex items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-sm">
                             <Paperclip class="size-4 text-muted" />
-                            <span class="flex-1 truncate">{{ model[f.key].name }}</span>
+                            <span class="flex-1 truncate">{{ valueOf(f.key).name }}</span>
                             <button type="button" class="text-faint hover:text-ink" aria-label="Remove file" @click="set(f.key, null)"><X class="size-4" /></button>
                         </div>
                         <input v-else :id="`cf-${f.key}`" type="file" class="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border file:border-line file:bg-surface file:px-3 file:py-1.5 file:text-sm" :disabled="uploading === f.key" @change="upload(f, $event)" />

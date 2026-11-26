@@ -252,7 +252,13 @@ class ProductController extends Controller
     public function edit(Product $product): Response
     {
         Gate::authorize('inventory.products.edit');
-        $product->load(['tags:id,name', 'accessories.accessory:id,name,sku', 'manufacturer:id,name']);
+        $product->load(['tags:id,name', 'manufacturer:id,name']);
+        if (Gate::allows('inventory.products.view')) {
+            $product->load([
+                'accessories.accessory' => fn ($q) => $q->withTrashed()->select('id', 'name', 'sku', 'deleted_at'),
+                'alternatives' => fn ($q) => $q->withTrashed()->select('products.id', 'products.name', 'products.sku', 'products.deleted_at'),
+            ]);
+        }
 
         return Inertia::render('Inventory/Products/Form', $this->formProps($product));
     }
@@ -511,14 +517,18 @@ class ProductController extends Controller
             'product' => $product ? $this->present($product) + [
                 'tags' => $product->tags->pluck('name')->all(),
                 'manufacturer_name' => $product->manufacturer?->name,
-                'accessories' => $product->accessories->map(fn (ProductAccessory $a) => [
+                'accessories' => $product->relationLoaded('accessories') ? $product->accessories->map(fn (ProductAccessory $a) => [
                     'accessory_product_id' => $a->accessory_product_id,
-                    'name' => $a->accessory?->name ?? 'Deleted product',
+                    'name' => $a->accessory ? $a->accessory->name.($a->accessory->trashed() ? ' (deleted; remove before saving)' : '') : 'Deleted product; remove before saving',
                     'quantity' => $a->quantity,
                     'type' => $a->type,
                     'auto_add' => $a->auto_add,
                     'notes' => $a->notes,
-                ])->all(),
+                ])->all() : [],
+                'alternatives' => $product->relationLoaded('alternatives') ? $product->alternatives->map(fn (Product $p) => [
+                    'product_id' => $p->id,
+                    'name' => $p->name.($p->trashed() ? ' (deleted; remove before saving)' : ''),
+                ])->all() : [],
             ] : null,
             'categories' => $this->hierarchy->categories(),
             'manufacturers' => $this->hierarchy->manufacturers(),
@@ -526,6 +536,7 @@ class ProductController extends Controller
             'tags' => Tag::query()->orderBy('name')->pluck('name')->all(),
             'trackingOptions' => $this->trackingOptions(),
             'accessoryTypes' => array_map(fn ($t) => ['value' => $t, 'label' => ucfirst($t)], ProductRequest::ACCESSORY_TYPES),
+            'canViewProducts' => Gate::allows('inventory.products.view'),
             'canCreateManufacturer' => Gate::allows('inventory.categories.create'),
             'customFieldSchema' => $this->customFields->schema('product'),
             'customFields' => (object) ($product?->customFields() ?? []),

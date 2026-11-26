@@ -15,7 +15,8 @@ class ProductRequest extends FormRequest
     {
         $product = $this->route('product');
 
-        return $this->user()->can($product instanceof Product ? 'inventory.products.edit' : 'inventory.products.create');
+        return $this->user()->can($product instanceof Product ? 'inventory.products.edit' : 'inventory.products.create')
+            && (! $this->hasAny(['accessories', 'alternatives']) || $this->user()->can('inventory.products.view'));
     }
 
     protected function prepareForValidation(): void
@@ -41,7 +42,7 @@ class ProductRequest extends FormRequest
             'manufacturer_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:20000'],
-            'tracking' => ['required', Rule::enum(TrackingType::class)],
+            'tracking' => ['required', Rule::enum(TrackingType::class), ...($product instanceof Product ? [Rule::in([$product->tracking->value])] : [])],
             'replacement_cost' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
             'rental_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
             'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
@@ -62,6 +63,12 @@ class ProductRequest extends FormRequest
             'accessories.*.type' => ['required', Rule::in(self::ACCESSORY_TYPES)],
             'accessories.*.auto_add' => ['boolean'],
             'accessories.*.notes' => ['nullable', 'string', 'max:255'],
+            'alternatives' => ['nullable', 'array', 'max:100'],
+            'alternatives.*.product_id' => [
+                'required', 'integer', 'distinct',
+                Rule::exists('products', 'id')->whereNull('deleted_at'),
+                ...($id ? [Rule::notIn([$id])] : []),
+            ],
             'stock' => ['nullable', 'array', 'max:100'],
             'stock.*.location_id' => ['nullable', 'integer', 'distinct', 'exists:locations,id'],
             'stock.*.quantity' => ['required', 'integer', 'min:0', 'max:10000000'],
@@ -77,6 +84,9 @@ class ProductRequest extends FormRequest
         return [
             'accessories.*.accessory_product_id.not_in' => 'A product cannot be its own accessory.',
             'accessories.*.accessory_product_id.distinct' => 'Each accessory can only be listed once.',
+            'tracking.in' => 'Tracking cannot be changed after a product is created.',
+            'alternatives.*.product_id.not_in' => 'A product cannot be its own alternative.',
+            'alternatives.*.product_id.distinct' => 'Each alternative can only be listed once.',
             'barcode.regex' => 'Barcodes may only contain printable ASCII characters.',
         ];
     }
@@ -86,6 +96,7 @@ class ProductRequest extends FormRequest
         return [
             'accessories.*.accessory_product_id' => 'accessory',
             'accessories.*.quantity' => 'quantity',
+            'alternatives.*.product_id' => 'alternative product',
             'stock.*.location_id' => 'location',
             'stock.*.quantity' => 'quantity',
         ];

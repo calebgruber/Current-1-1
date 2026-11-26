@@ -10,6 +10,7 @@ use App\Domain\Rules\DTOs\RuleFinding;
  * A line describes one allocation:
  *   [product_id, product, categories => list<int> (category + ancestors),
  *    tags => list<string>, custom => array<string, mixed> (product custom fields),
+ *    custom_types => array<string, string> (numeric custom field types),
  *    required => int, spare => int]
  *
  * A rule definition (authored in the no-code builder):
@@ -257,9 +258,21 @@ final class RuleEvaluator
             'category' => array_intersect(array_map('strval', $line['categories'] ?? []), $values) !== [],
             'tag' => array_intersect(array_map(fn ($t) => mb_strtolower((string) $t), $line['tags'] ?? []), array_map('mb_strtolower', $values)) !== [],
             'name' => $this->textMatches((string) ($line['product'] ?? ''), $values, $selector['operator'] ?? 'contains'),
-            'custom_field' => $this->textMatches($line['custom'][(string) ($selector['field'] ?? '')] ?? null, $values, $selector['operator'] ?? 'is'),
+            'custom_field' => $this->customFieldMatches($line, $selector, $values),
             default => false,
         };
+    }
+
+    private function customFieldMatches(array $line, array $selector, array $values): bool
+    {
+        $key = (string) ($selector['field'] ?? '');
+        $actual = $line['custom'][$key] ?? null;
+        if (in_array($line['custom_types'][$key] ?? null, ['number', 'currency'], true)
+            && is_string($actual) && preg_match('/^[+-]?\d+\.\d+$/D', $actual)) {
+            $actual = rtrim(rtrim($actual, '0'), '.');
+        }
+
+        return $this->textMatches($actual, $values, $selector['operator'] ?? 'is');
     }
 
     /** Case-insensitive "is"/"contains" comparison; list values (multi-select) match if any element matches. */

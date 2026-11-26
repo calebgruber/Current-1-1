@@ -87,7 +87,10 @@ final class CustomFieldValidator
                 if (! is_numeric($value)) {
                     return ["{$label} must be a number.", null];
                 }
-                $n = $def['type'] === 'currency' ? round((float) $value, 2) : $value + 0;
+                $n = $this->decimal((string) $value, $def['type'] === 'currency');
+                if ($n === null) {
+                    return ["{$label} must fit within 14 integer digits and 4 decimal places.", null];
+                }
                 if (isset($rules['min']) && $n < $rules['min']) {
                     return ["{$label} must be at least {$rules['min']}.", null];
                 }
@@ -170,5 +173,51 @@ final class CustomFieldValidator
             fn ($o) => (string) (is_array($o) ? ($o['value'] ?? $o['label'] ?? '') : $o),
             $def['options'] ?? [],
         );
+    }
+
+    /** Normalize DECIMAL(18,4) without first losing precision to a float. */
+    private function decimal(string $value, bool $currency): ?string
+    {
+        if (! preg_match('/^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/', trim($value), $m)) {
+            return null;
+        }
+        $whole = $m[2] !== '' ? $m[2] : '0';
+        $fraction = $m[2] !== '' ? ($m[3] ?? '') : ($m[4] ?? '');
+        $raw = $whole.$fraction;
+        $digits = ltrim($raw, '0');
+        if ($digits === '') {
+            return '0';
+        }
+        $exponent = (int) ($m[5] ?? 0);
+        $position = strlen($whole) + $exponent - (strlen($raw) - strlen($digits));
+        $digits = rtrim($digits, '0');
+        if ($position > 14 || max(0, strlen($digits) - $position) > 4) {
+            return null;
+        }
+        $integer = $position > 0 ? substr(str_pad($digits, $position, '0'), 0, $position) : '0';
+        $decimal = $position < 0 ? str_repeat('0', -$position).$digits : substr($digits, $position);
+        if ($currency) {
+            $decimal = str_pad($decimal, 3, '0');
+            $cents = $integer.substr($decimal, 0, 2);
+            if ($decimal[2] >= '5') {
+                for ($i = strlen($cents) - 1; $i >= 0; $i--) {
+                    if ($cents[$i] !== '9') {
+                        $cents[$i] = (string) ((int) $cents[$i] + 1);
+                        break;
+                    }
+                    $cents[$i] = '0';
+                }
+                if ($i < 0) {
+                    $cents = '1'.$cents;
+                }
+            }
+            $integer = substr($cents, 0, -2);
+            $decimal = substr($cents, -2);
+            if (strlen($integer) > 14) {
+                return null;
+            }
+        }
+
+        return ($m[1] === '-' ? '-' : '').$integer.($decimal !== '' ? '.'.$decimal : '');
     }
 }

@@ -164,6 +164,8 @@ Pivot tables with composite PKs (`role_id, permission_id`) and (`role_id, user_i
 #### `categories`
 `id`, `parent_id?` FK → categories (null), `name`, `slug` UQ, `color?`, `icon?`, `sort_order uint`, timestamps.
 
+`category_tree_version` holds a singleton version/serialization row for category mutations. Reordering checks the submitted version and updates only the destination sibling group within the same transaction.
+
 #### `manufacturers`
 `id`, `name` UQ, `website?`, timestamps.
 

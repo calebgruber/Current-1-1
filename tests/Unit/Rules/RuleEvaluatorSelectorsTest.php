@@ -43,6 +43,23 @@ class RuleEvaluatorSelectorsTest extends TestCase
         $this->assertCount(0, $evaluator->matching($lines, ['match' => 'custom_field', 'field' => 'features', 'operator' => 'is', 'values' => ['rd']]));
     }
 
+    public function test_numeric_custom_fields_use_legacy_compact_decimal_matching_only_for_numeric_types(): void
+    {
+        $evaluator = new RuleEvaluator;
+        $numeric = $this->line(1, 'Fixture', 1, ['watts' => '1.0000', 'cost' => '10.5000', 'precise' => '99999999999999.9999', 'code' => '1.0000']);
+        $numeric['custom_types'] = ['watts' => 'number', 'cost' => 'currency', 'precise' => 'number'];
+        $selector = fn ($field, $value, $operator = 'is') => ['match' => 'custom_field', 'field' => $field, 'operator' => $operator, 'values' => [$value]];
+
+        $this->assertCount(1, $evaluator->matching([$numeric], $selector('watts', '1')));
+        $this->assertCount(1, $evaluator->matching([$numeric], $selector('cost', '10.5')));
+        $this->assertCount(1, $evaluator->matching([$numeric], $selector('cost', '0.5', 'contains')));
+        $this->assertCount(1, $evaluator->matching([$numeric], $selector('precise', '99999999999999.9999')));
+        $this->assertCount(0, $evaluator->matching([$numeric], $selector('precise', '100000000000000')));
+        $this->assertCount(0, $evaluator->matching([$numeric], $selector('watts', '1.0000')));
+        $this->assertCount(0, $evaluator->matching([$numeric], $selector('code', '1')));
+        $this->assertCount(1, $evaluator->matching([$numeric], $selector('code', '1.0000')));
+    }
+
     public function test_validate_definition_rejects_bad_custom_field_selector(): void
     {
         $evaluator = new RuleEvaluator;

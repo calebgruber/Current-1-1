@@ -3,12 +3,17 @@ import { Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import Combobox from '@/Components/ui/Combobox.vue';
+import CustomFieldDisplay from '@/Components/custom-fields/CustomFieldDisplay.vue';
 import { useFormat } from '@/composables/useFormat';
+import { usePermissions } from '@/composables/usePermissions';
+import { SlidersHorizontal } from 'lucide-vue-next';
+import type { CustomFieldSchema } from '@/types';
 
 type Job = { id: number; number: string; name: string; stage_label: string; description: string | null; starts_at: string | null; returns_at: string | null; allows_allocation_edits: boolean; allowed_transitions: { value: string; label: string; allowed: boolean }[] };
 type Item = { id: number; product: { name: string; sku: string | null } | null; required_quantity: number; spare_quantity: number; picked_quantity: number; checked_out_quantity: number; returned_quantity: number };
-const props = defineProps<{ job: Job; items: Item[]; can: { edit: boolean; delete: boolean; items_create: boolean; items_edit: boolean; items_delete: boolean; override: boolean }; findings: { message: string }[] }>();
+const props = defineProps<{ job: Job; items: Item[]; can: { edit: boolean; delete: boolean; items_create: boolean; items_edit: boolean; items_delete: boolean; override: boolean }; findings: { message: string }[]; customFieldSchema: CustomFieldSchema[]; customFields: Record<string, any> }>();
 const { datetime } = useFormat();
+const { can: hasPermission } = usePermissions();
 const item = useForm({ product_id: null as number | string | null, required_quantity: 1, spare_quantity: 0, with_accessories: true, override: false, override_reason: '' });
 const stage = useForm({ stage: '', notes: '', override: false, override_reason: '' });
 const editing = ref<Item | null>(null);
@@ -37,6 +42,14 @@ const removeJob = () => { if (confirm('Delete this job?')) router.delete(route('
     </PageHeader>
     <div class="space-y-5">
         <section class="st-card space-y-2 p-4"><p>{{ datetime(job.starts_at) }} → {{ datetime(job.returns_at) }}</p><p v-if="job.description">{{ job.description }}</p><a class="st-link" :href="route('jobs.pull-sheet', job.id)">Pull sheet</a></section>
+        <section v-if="customFieldSchema.length || (hasPermission('settings.custom_fields.view') && route().has('settings.custom-fields.index'))" class="st-card space-y-3 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="font-semibold">Custom fields</h2>
+                <Link v-if="hasPermission('settings.custom_fields.view') && route().has('settings.custom-fields.index')" class="st-link inline-flex items-center gap-1" :href="route('settings.custom-fields.index')"><SlidersHorizontal class="size-4" aria-hidden="true" /> Manage fields</Link>
+            </div>
+            <CustomFieldDisplay v-if="customFieldSchema.length" :schema="customFieldSchema" :values="customFields" />
+            <p v-else class="text-sm text-muted">No custom fields configured for jobs.</p>
+        </section>
         <section v-if="job.allowed_transitions.some(t => t.allowed)" class="st-card space-y-2 p-4">
             <h2 class="font-semibold">Move stage</h2><form class="flex flex-wrap gap-2" @submit.prevent="stage.post(route('jobs.transition', job.id), { preserveScroll: true })"><select v-model="stage.stage" required class="st-input max-w-48"><option value="">Choose stage</option><option v-for="t in job.allowed_transitions.filter(t => t.allowed)" :key="t.value" :value="t.value">{{ t.label }}</option></select><input v-model="stage.notes" class="st-input max-w-64" placeholder="Notes (optional)"><button class="st-btn" :disabled="stage.processing">Move</button></form>
             <div v-if="can.override"><label><input v-model="stage.override" type="checkbox"> Override overbooking</label><input v-if="stage.override" v-model="stage.override_reason" class="st-input" placeholder="Override reason"></div>

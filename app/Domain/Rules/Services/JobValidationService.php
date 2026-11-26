@@ -2,6 +2,7 @@
 
 namespace App\Domain\Rules\Services;
 
+use App\Domain\CustomFields\Enums\CustomFieldType;
 use App\Domain\Inventory\Models\Category;
 use App\Domain\Jobs\Models\ProductionJob;
 use App\Domain\Rules\DTOs\RuleFinding;
@@ -54,6 +55,9 @@ class JobValidationService
             'categories' => $i->product->category_id ? ($ancestors[$i->product->category_id] ?? [$i->product->category_id]) : [],
             'tags' => $i->product->tags->flatMap(fn ($t) => [$t->name, $t->slug])->all(),
             'custom' => $i->product->customFields(),
+            'custom_types' => $i->product->customFieldValues
+                ->filter(fn ($value) => $value->definition && in_array($value->definition->type, [CustomFieldType::Number, CustomFieldType::Currency], true))
+                ->mapWithKeys(fn ($value) => [$value->definition->key => $value->definition->type->value])->all(),
             'required' => (int) $i->required_quantity,
             'spare' => (int) $i->spare_quantity,
         ])->values()->all();

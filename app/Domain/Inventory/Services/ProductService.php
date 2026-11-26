@@ -3,14 +3,17 @@
 namespace App\Domain\Inventory\Services;
 
 use App\Domain\Administration\Models\AuditLog;
+use App\Domain\Inventory\Models\Category;
 use App\Domain\Inventory\Models\Product;
 use App\Domain\Inventory\Models\ProductImage;
 use App\Domain\Inventory\Models\StockLevel;
 use App\Domain\Inventory\Models\Tag;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /** Persists products together with their tags, accessories, stock and images. */
 class ProductService
@@ -28,6 +31,10 @@ class ProductService
                 'replacement_cost', 'rental_price', 'weight_kg', 'barcode', 'default_location_id', 'is_active',
             ])->all();
 
+            if (isset($attributes['category_id']) && ! Category::query()->whereKey($attributes['category_id'])->lockForUpdate()->first(['id'])) {
+                throw ValidationException::withMessages(['category_id' => 'The selected category no longer exists.']);
+            }
+
             if (array_key_exists('metadata', $data)) {
                 $attributes['metadata'] = $this->normalizeMetadata($data['metadata'] ?? []);
             }
@@ -39,6 +46,9 @@ class ProductService
             }
             if (array_key_exists('accessories', $data)) {
                 $this->syncAccessories($product, $data['accessories'] ?? []);
+            }
+            if (array_key_exists('alternatives', $data)) {
+                $product->alternatives()->sync(collect($data['alternatives'] ?? [])->pluck('product_id')->all());
             }
             if (! empty($data['stock']) && ! $product->isSerialized()) {
                 foreach ($data['stock'] as $row) {
@@ -77,16 +87,37 @@ class ProductService
     {
         $ids = collect($names)
             ->map(fn ($n) => trim((string) $n))
-            ->filter()
-            ->unique(fn ($n) => Str::slug($n))
-            ->map(function (string $name) {
-                $slug = Str::slug($name) ?: Str::random(8);
-
-                return Tag::query()->firstOrCreate(['slug' => $slug], ['name' => $name])->id;
-            })
+            ->filter(fn ($name) => $name !== '')
+            ->unique()
+            ->map(fn (string $name) => $this->resolveTag($name)->id)
+            ->unique()
             ->all();
 
         $product->tags()->sync($ids);
+    }
+
+    private function resolveTag(string $name): Tag
+    {
+        $existing = Tag::query()->where('name', $name)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $base = substr(Str::slug($name) ?: 'tag', 0, 200);
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $slug = $attempt === 0 ? $base : $base.'-'.($attempt === 1 ? substr(hash('sha256', $name), 0, 12) : Str::random(12));
+            try {
+                return Tag::query()->createOrFirst(['name' => $name], ['slug' => $slug]);
+            } catch (UniqueConstraintViolationException $e) {
+                $existing = Tag::query()->where('name', $name)->lockForUpdate()->first();
+                if ($existing) {
+                    return $existing;
+                }
+                if ($attempt === 9) {
+                    throw $e;
+                }
+            }
+        }
     }
 
     /** @param list<array{accessory_product_id: int, quantity: float|int|string, type?: string, auto_add?: bool, notes?: ?string}> $rows */
