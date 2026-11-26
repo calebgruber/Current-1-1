@@ -24,7 +24,7 @@
 
 ## Quick start
 
-### cPanel (production)
+### cPanel (planned deployment)
 
 1. Create a MySQL 8 database and user in cPanel.
 2. Upload and extract the release zip **outside** `public_html`, then point the domain's document root at `public/`.
@@ -36,15 +36,30 @@ The full guide is in [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ### Local development
 
+Install PHP 8.3 with Composer and the SQLite, mbstring, XML, curl and zip PHP
+extensions, plus Node.js 22 and npm. From the project root:
+
 ```bash
 composer install
-cp .env.example .env && php artisan key:generate
-touch database/database.sqlite        # or configure MySQL in .env
-npm install
-composer run dev                      # or: php artisan serve + npm run dev
-# open http://localhost:8000/setup
-php artisan test
+cp .env.example .env                 # only if .env does not already exist
+php artisan key:generate
+npm ci
+npm run build
+php artisan serve
 ```
+
+Open `http://localhost:8000/setup` and complete the wizard in one browser
+session. Select SQLite and use `database.sqlite` as the database name for a
+local database, or supply credentials for a separate MySQL database. The
+wizard creates the administrator and installs the base data. Keep access
+restricted during setup; see [the installation guide](docs/INSTALLATION.md).
+
+For frontend development, run `npm run dev` in a second terminal while
+`php artisan serve` is running. Run `php artisan test`, `npm run typecheck`
+and `npm run build` to check changes. Tests use an in-memory SQLite database.
+Do not regenerate the application key on an existing installation: it is used
+to encrypt data. The wizard sets production-oriented environment values, so
+review `.env` after setup when working locally.
 
 ## Documentation
 
