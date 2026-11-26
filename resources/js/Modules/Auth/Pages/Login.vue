@@ -35,5 +35,5 @@ const submit = () => form.post(route('login.store'), { onFinish: () => form.rese
         <p v-if="error" class="mt-2 text-sm text-red-600" role="alert">{{ error }}</p>
         <p v-if="!isSupported" class="mt-2 text-xs text-muted">Passkeys are unavailable in this browser or on this connection.</p>
     </div>
-    <Link v-if="canResetPassword" :href="route('password.request')" class="mt-4 inline-block text-sm text-accent-ink">Forgot your password?</Link>
+    <Link v-if="canResetPassword" :href="route('password.request')" class="st-link mt-4 text-sm">Forgot your password?</Link>
 </template>

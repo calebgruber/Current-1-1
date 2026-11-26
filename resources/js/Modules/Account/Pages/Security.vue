@@ -78,7 +78,7 @@ async function disableTwoFactor() {
     <h1 class="mb-6 text-2xl font-semibold">Account security</h1>
     <div class="space-y-5">
         <p v-if="policy.require_two_factor" class="text-sm text-muted">Your organization requires an authenticator app or passkey. If you already have one, sign out and use it to sign in before making security changes. After registering a passkey, sign out and sign in with it to continue.</p>
-        <p v-if="policy.password_expired" class="text-sm text-red-600">Your password has expired. <Link class="underline" :href="route('account.password')">Change it now</Link>.</p>
+        <p v-if="policy.password_expired" class="text-sm text-red-600">Your password has expired. <Link class="st-link" :href="route('account.password')">Change it now</Link>.</p>
         <p v-if="message" class="text-sm text-red-600" role="alert">{{ message }}</p>
         <Card title="Confirm your identity" description="Enter your password before making security changes.">
             <FormField label="Current password" for="security-password"><TextInput id="security-password" v-model="password" type="password" autocomplete="current-password" /></FormField>
@@ -120,7 +120,7 @@ async function disableTwoFactor() {
             </form>
             <p v-else class="text-sm text-muted">Passkeys are disabled by your organization.</p>
         </Card>
-        <Card title="Password"><Link :href="route('account.password')" class="text-sm text-accent-ink">Change password</Link></Card>
+        <Card title="Password"><Link :href="route('account.password')" class="st-link text-sm">Change password</Link></Card>
         <Card title="Sessions">
             <p v-if="!sessionsSupported" class="text-sm text-muted">Session management is unavailable with the current session driver.</p>
             <ul v-else class="space-y-2 text-sm"><li v-for="session in sessions" :key="session.id">{{ session.browser }} on {{ session.platform }} <span v-if="session.is_current">(current session)</span></li></ul>

@@ -50,15 +50,15 @@ final class ReportDefinition
             ], array_filter($list($d['sort'] ?? []), 'is_array')),
             'limit' => max(1, min(ReportRunner::MAX_ROWS, (int) ($d['limit'] ?? 1000))),
             'chart' => [
-                'type' => in_array($chart['type'] ?? 'none', self::CHART_TYPES, true) ? $chart['type'] : 'none',
+                'type' => in_array($chart['type'] ?? 'none', self::CHART_TYPES, true) ? ($chart['type'] ?? 'none') : 'none',
                 'x' => ($chart['x'] ?? null) ? $str($chart['x']) : null,
                 'y' => array_values(array_filter(array_map($str, $list($chart['y'] ?? [])))),
             ],
             'view' => [
-                'mode' => in_array($view['mode'] ?? 'table', self::VIEW_MODES, true) ? $view['mode'] : 'table',
+                'mode' => in_array($view['mode'] ?? 'table', self::VIEW_MODES, true) ? ($view['mode'] ?? 'table') : 'table',
                 'kpis' => array_slice(array_map(fn ($k) => [
                     'label' => mb_substr($str($k['label'] ?? ''), 0, 60),
-                    'fn' => in_array($k['fn'] ?? 'count', self::KPI_FUNCTIONS, true) ? $k['fn'] : 'count',
+                    'fn' => in_array($k['fn'] ?? 'count', self::KPI_FUNCTIONS, true) ? ($k['fn'] ?? 'count') : 'count',
                     'column' => ($k['column'] ?? null) ? $str($k['column']) : null,
                     'format' => in_array($k['format'] ?? 'number', ['number', 'currency', 'percent'], true) ? ($k['format'] ?? 'number') : 'number',
                 ], array_filter($list($view['kpis'] ?? []), 'is_array')), 0, 6),

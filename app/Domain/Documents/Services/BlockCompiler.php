@@ -41,7 +41,7 @@ final class BlockCompiler
             'heading' => sprintf('<h%1$d %2$s>%3$s</h%1$d>', min(4, max(1, (int) ($p['level'] ?? 1))), $attrs, $this->inline((string) ($p['text'] ?? ''))),
             'text' => sprintf('<div %s>%s</div>', $attrs, $this->decodeTags((string) ($p['html'] ?? ''))),
             'logo' => sprintf('<div %s>{%% if organization.logo_url %%}<img src="{{ organization.logo_url }}" alt="{{ organization.name }}" style="max-height:%dpx">{%% else %%}<strong class="st-org">{{ organization.name }}</strong>{%% endif %%}</div>', $attrs, (int) ($p['height'] ?? 64)),
-            'image' => sprintf('<div %s><img src="%s" alt="%s" style="max-width:100%%;width:%s"></div>', $attrs, $this->attr((string) ($p['src'] ?? '')), $this->attr((string) ($p['alt'] ?? '')), preg_match('/^\d{1,4}(\.\d+)?(%|px|mm)$/', (string) ($p['width'] ?? '')) ? $p['width'] : 'auto'),
+            'image' => sprintf('<div %s><img src="%s" alt="%s" style="max-width:100%%;width:%s"></div>', $attrs, $this->imageSource((string) ($p['src'] ?? '')), $this->attr((string) ($p['alt'] ?? '')), preg_match('/^\d{1,4}(\.\d+)?(%|px|mm)$/', (string) ($p['width'] ?? '')) ? $p['width'] : 'auto'),
             'fields' => $this->fields($attrs, $p),
             'items_table' => $this->itemsTable($attrs, $p),
             'totals' => $this->totals($attrs, $p),
@@ -201,6 +201,16 @@ final class BlockCompiler
     private function attr(string $s): string
     {
         return str_replace(['{', '}'], ['&#123;', '&#125;'], htmlspecialchars($s, ENT_QUOTES, 'UTF-8'));
+    }
+
+    private function imageSource(string $src): string
+    {
+        if (preg_match('/^\{\{([^{}]*)\}\}$/s', $src, $matches)) {
+            // Escape even a value marked raw before it reaches the HTML attribute.
+            return '{{ '.$this->expr($matches[1]).' | escape }}';
+        }
+
+        return $this->attr($src);
     }
 
     private function style(array $s): string

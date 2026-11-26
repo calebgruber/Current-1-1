@@ -38,7 +38,7 @@ const type = ref(props.filters.type);
             <thead><tr class="border-b border-line"><th class="p-3">Location</th><th class="p-3">Type</th><th class="p-3">Code</th><th class="p-3">Barcode</th><th class="p-3">Status</th><th class="p-3">Sub-locations</th><th class="p-3">Assets</th><th class="p-3">Bulk units</th><th class="p-3">Products</th><th v-for="field in customFieldColumns" :key="field.key" class="p-3">{{ field.label }}</th></tr></thead>
             <tbody>
                 <tr v-for="location in locations" :key="location.id" class="border-b border-line">
-                    <td class="p-3"><Link :href="route('inventory.locations.show', location.id)" class="text-accent hover:underline">{{ location.path }}</Link></td>
+                    <td class="p-3"><Link :href="route('inventory.locations.show', location.id)" class="st-link">{{ location.path }}</Link></td>
                     <td class="p-3 capitalize">{{ location.type }}</td><td class="p-3">{{ location.code || '—' }}</td><td class="p-3">{{ location.barcode || '—' }}</td>
                     <td class="p-3">{{ location.is_active ? 'Active' : 'Inactive' }}</td><td class="p-3">{{ location.children_count }}</td><td class="p-3">{{ location.assets_count }}</td><td class="p-3">{{ location.bulk_units }}</td><td class="p-3">{{ location.products_count }}</td>
                     <td v-for="field in customFieldColumns" :key="field.key" class="p-3"><CustomFieldDisplay :schema="[field]" :values="location.custom_fields" /></td>

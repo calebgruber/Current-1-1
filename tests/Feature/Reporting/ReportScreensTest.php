@@ -3,6 +3,7 @@
 namespace Tests\Feature\Reporting;
 
 use App\Domain\Reporting\Models\Report;
+use App\Domain\Reporting\Services\ReportSourceRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -30,5 +31,32 @@ class ReportScreensTest extends TestCase
         $this->actingAs($user)->get("/reports/{$report->id}/schedules")->assertForbidden();
         $this->post("/reports/{$report->id}/schedules", ['frequency' => 'daily', 'format' => 'csv', 'hour' => 8, 'recipients' => ['person@example.com']])->assertForbidden();
         $this->assertDatabaseCount('report_schedules', 0);
+    }
+
+    public function test_all_catalogue_columns_can_be_saved_and_shown(): void
+    {
+        $this->actingAs($this->superAdmin());
+
+        foreach (app(ReportSourceRegistry::class)->catalogue() as $source) {
+            $columns = array_column($source['columns'], 'key');
+            $this->get('/reports/create?source='.$source['key'])
+                ->assertOk()
+                ->assertInertia(fn (Assert $p) => $p->where('report.source', $source['key']));
+            $this->post('/reports', [
+                'name' => $source['label'], 'source' => $source['key'], 'definition' => ['columns' => $columns],
+            ])->assertSessionHasNoErrors();
+            $report = Report::where('source', $source['key'])->firstOrFail();
+            $this->get("/reports/{$report->id}")
+                ->assertOk()
+                ->assertInertia(fn (Assert $p) => $p->has('result.columns', count($columns)));
+        }
+    }
+
+    public function test_create_with_no_permitted_sources_uses_null_source(): void
+    {
+        $this->actingAs($this->userWithPermissions(['reporting.reports.create']))
+            ->get('/reports/create')
+            ->assertOk()
+            ->assertInertia(fn (Assert $p) => $p->where('report.source', null)->has('sources', 0));
     }
 }

@@ -36,6 +36,6 @@ const submit = () => location ? form.put(route('inventory.locations.update', loc
         <label class="st-label">Notes <textarea v-model="form.notes" class="st-input" rows="3" maxlength="5000" /></label>
         <label class="flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox"> Active</label>
         <CustomFieldInputs v-model="form.custom_fields" :schema="customFieldSchema" :errors="form.errors" />
-        <div class="flex items-center gap-3"><Button type="submit" variant="primary" :loading="form.processing">Save location</Button><Link :href="location ? route('inventory.locations.show', location.id) : route('inventory.locations.index')" class="text-sm text-accent hover:underline">Cancel</Link></div>
+        <div class="flex items-center gap-3"><Button type="submit" variant="primary" :loading="form.processing">Save location</Button><Link :href="location ? route('inventory.locations.show', location.id) : route('inventory.locations.index')" class="st-link text-sm">Cancel</Link></div>
     </form>
 </template>

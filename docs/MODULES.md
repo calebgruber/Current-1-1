@@ -236,6 +236,19 @@ Checks: `requires` (all requirement values), `requires_any`, `max_quantity`, `mi
 | Pages | `Documents/Index`, `Documents/Show`, `Documents/Templates`, `Documents/Designer` |
 | Permissions | `documents.templates.*`, `documents.documents.*` |
 
+The template designer edits blocks, including nested columns and conditionals, alongside a
+zoomable sample-data preview. Paper size, orientation, four millimetre margins, watermark
+and custom CSS are saved with the template. The preview shows one screen page, not PDF
+pagination; external images are blocked in the preview. Text blocks accept HTML and template
+expressions. Code mode edits HTML/CSS directly; compiling blocks to HTML is an explicit,
+replacing operation. Saving in visual mode removes previously saved HTML. Preview and
+compilation require template view permission in addition to the permission to edit or create.
+The server validates and sanitizes blocks and canonicalizes their structural fields; unknown
+block types cannot be saved.
+Image block sources may be uploaded-image data URLs or a single template expression such
+as `{{ organization.logo_url }}`. Expression output is escaped and the rendered URL is
+sanitized; mixed literal text and expressions are not interpolated.
+
 Template language summary:
 
 | Construct | Example |

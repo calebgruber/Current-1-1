@@ -21,7 +21,7 @@ const status = ref(props.filters.status ?? '');
         <Button type="submit">Search</Button>
     </form>
     <div class="st-card overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr class="border-b border-line"><th class="p-3">Reference</th><th class="p-3">Title</th><th class="p-3">Product / asset</th><th class="p-3">Status</th><th class="p-3">Assigned to</th></tr></thead><tbody>
-        <tr v-for="r in records.data" :key="r.id" class="border-b border-line"><td class="p-3"><Link class="text-accent hover:underline" :href="`/maintenance/${r.id}`">{{ r.reference }}</Link></td><td class="p-3">{{ r.title }}</td><td class="p-3">{{ r.product?.name }}{{ r.asset ? ` · ${r.asset.asset_number}` : '' }}</td><td class="p-3">{{ statuses.find(s => s.value === r.status)?.label ?? r.status }}</td><td class="p-3">{{ r.assignee?.name ?? '—' }}</td></tr>
+        <tr v-for="r in records.data" :key="r.id" class="border-b border-line"><td class="p-3"><Link class="st-link" :href="`/maintenance/${r.id}`">{{ r.reference }}</Link></td><td class="p-3">{{ r.title }}</td><td class="p-3">{{ r.product?.name }}{{ r.asset ? ` · ${r.asset.asset_number}` : '' }}</td><td class="p-3">{{ statuses.find(s => s.value === r.status)?.label ?? r.status }}</td><td class="p-3">{{ r.assignee?.name ?? '—' }}</td></tr>
         <tr v-if="!records.data.length"><td colspan="5" class="p-4 text-muted">No maintenance records found.</td></tr>
     </tbody></table></div><Pagination :meta="records" />
 </template>

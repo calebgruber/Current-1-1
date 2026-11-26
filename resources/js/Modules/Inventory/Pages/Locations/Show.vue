@@ -32,8 +32,8 @@ function remove() {
         </template>
     </PageHeader>
     <nav aria-label="Location hierarchy" class="mb-4 text-sm">
-        <Link :href="route('inventory.locations.index')" class="text-accent hover:underline">Locations</Link>
-        <template v-for="ancestor in breadcrumbs" :key="ancestor.id"> › <Link :href="route('inventory.locations.show', ancestor.id)" class="text-accent hover:underline">{{ ancestor.name }}</Link></template>
+        <Link :href="route('inventory.locations.index')" class="st-link">Locations</Link>
+        <template v-for="ancestor in breadcrumbs" :key="ancestor.id"> › <Link :href="route('inventory.locations.show', ancestor.id)" class="st-link">{{ ancestor.name }}</Link></template>
         › {{ location.name }}
     </nav>
     <div class="space-y-4">
@@ -45,14 +45,14 @@ function remove() {
             <div class="mt-3"><CustomFieldDisplay :schema="customFieldSchema" :values="customFields" /></div>
         </Card>
         <Card title="Sub-locations">
-            <ul class="space-y-2"><li v-for="child in children" :key="child.id"><Link :href="route('inventory.locations.show', child.id)" class="text-accent hover:underline">{{ child.name }}</Link> — {{ child.type }}{{ child.code ? ` · ${child.code}` : '' }} · {{ child.is_active ? 'Active' : 'Inactive' }} · {{ child.children_count }} sub-locations · {{ child.assets_count }} assets</li><li v-if="!children.length" class="text-muted">No sub-locations.</li></ul>
+            <ul class="space-y-2"><li v-for="child in children" :key="child.id"><Link :href="route('inventory.locations.show', child.id)" class="st-link">{{ child.name }}</Link> — {{ child.type }}{{ child.code ? ` · ${child.code}` : '' }} · {{ child.is_active ? 'Active' : 'Inactive' }} · {{ child.children_count }} sub-locations · {{ child.assets_count }} assets</li><li v-if="!children.length" class="text-muted">No sub-locations.</li></ul>
         </Card>
         <Card title="Assets">
             <p v-if="assetsTotal > assets.length" class="mb-2 text-sm text-muted">Showing {{ assets.length }} of {{ assetsTotal }} assets.</p>
-            <ul class="space-y-2"><li v-for="asset in assets" :key="asset.id"><Link v-if="can('assets.assets.view')" :href="route('assets.show', asset.id)" class="text-accent hover:underline">{{ asset.asset_number }}</Link><span v-else>{{ asset.asset_number }}</span> — {{ asset.product?.name || 'Unknown product' }} · {{ asset.status_label }}<span v-if="asset.serial_number"> · Serial: {{ asset.serial_number }}</span></li><li v-if="!assets.length" class="text-muted">No assets at this location.</li></ul>
+            <ul class="space-y-2"><li v-for="asset in assets" :key="asset.id"><Link v-if="can('assets.assets.view')" :href="route('assets.show', asset.id)" class="st-link">{{ asset.asset_number }}</Link><span v-else>{{ asset.asset_number }}</span> — {{ asset.product?.name || 'Unknown product' }} · {{ asset.status_label }}<span v-if="asset.serial_number"> · Serial: {{ asset.serial_number }}</span></li><li v-if="!assets.length" class="text-muted">No assets at this location.</li></ul>
         </Card>
         <Card title="Bulk stock">
-            <ul class="space-y-2"><li v-for="row in stock" :key="row.product.id"><Link v-if="can('inventory.products.view')" :href="route('inventory.products.show', row.product.id)" class="text-accent hover:underline">{{ row.product.name }}</Link><span v-else>{{ row.product.name }}</span><span v-if="row.product.sku"> ({{ row.product.sku }})</span>: {{ row.quantity }} · Maintenance {{ row.quantity_maintenance }} · Damaged {{ row.quantity_damaged }} · Lost {{ row.quantity_lost }}</li><li v-if="!stock.length" class="text-muted">No bulk stock at this location.</li></ul>
+            <ul class="space-y-2"><li v-for="row in stock" :key="row.product.id"><Link v-if="can('inventory.products.view')" :href="route('inventory.products.show', row.product.id)" class="st-link">{{ row.product.name }}</Link><span v-else>{{ row.product.name }}</span><span v-if="row.product.sku"> ({{ row.product.sku }})</span>: {{ row.quantity }} · Maintenance {{ row.quantity_maintenance }} · Damaged {{ row.quantity_damaged }} · Lost {{ row.quantity_lost }}</li><li v-if="!stock.length" class="text-muted">No bulk stock at this location.</li></ul>
         </Card>
         <Card title="Label">
             <p>{{ label.title }} · {{ label.subtitle }} · {{ label.code }}</p>

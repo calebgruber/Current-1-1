@@ -42,7 +42,7 @@ const groups = computed(() => {
         <Card v-for="[label, items] in groups" :key="label" :title="label" :padded="false">
             <ul class="divide-y divide-line">
                 <li v-for="r in items" :key="`${r.type}-${r.id}`">
-                    <Link :href="r.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-hover/60">
+                    <Link :href="r.url" class="m-2 flex items-center gap-3 rounded-md border border-line bg-surface px-4 py-2.5 transition hover:border-line-strong hover:bg-hover">
                         <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm font-medium">{{ r.title }}</span>
                             <span v-if="r.subtitle" class="block truncate text-xs text-muted">{{ r.subtitle }}</span>

@@ -84,7 +84,7 @@ const submitAdmin = () => admin.post(route('setup.admin'), { onFinish: () => adm
             <Button class="mt-4" variant="primary" @click="router.post(route('setup.finish'))">Finish installation</Button>
         </Card>
         <nav class="mt-5 flex flex-wrap gap-3 text-sm" aria-label="Completed setup steps">
-            <Link v-for="step in steps.filter((s) => completed.includes(s.key))" :key="step.key" :href="route('setup.index', { step: step.key })" class="text-accent-ink">{{ step.label }}</Link>
+            <Link v-for="step in steps.filter((s) => completed.includes(s.key))" :key="step.key" :href="route('setup.index', { step: step.key })" class="st-link">{{ step.label }}</Link>
         </nav>
     </SetupLayout>
 </template>

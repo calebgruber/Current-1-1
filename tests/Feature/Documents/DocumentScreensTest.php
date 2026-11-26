@@ -39,4 +39,43 @@ class DocumentScreensTest extends TestCase
         $this->assertTrue($old->fresh()->is_default);
         $this->assertFalse($other->fresh()->is_default);
     }
+
+    public function test_designer_preview_compile_and_save_preserve_nested_blocks_and_page_settings(): void
+    {
+        $this->actingAs($this->superAdmin());
+        $blocks = [['id' => 'outer', 'type' => 'columns', 'props' => ['columns' => [
+            ['width' => '35%', 'blocks' => [['id' => 'title', 'type' => 'heading', 'props' => ['text' => 'Nested title']]]],
+            ['width' => '65%', 'blocks' => [['id' => 'condition', 'type' => 'conditional', 'props' => [
+                'condition' => 'true', 'blocks' => [['id' => 'text', 'type' => 'text', 'props' => ['html' => '<p>Nested content</p>']]],
+            ]]]],
+        ]]]];
+        $draft = [
+            'name' => 'Example', 'type' => 'quotation', 'entity_type' => 'job', 'editor' => 'visual',
+            'blocks' => $blocks, 'paper_size' => 'a4', 'orientation' => 'landscape',
+            'margins' => ['top' => 10, 'right' => 20, 'bottom' => 30, 'left' => 40],
+            'watermark' => '<script>alert(1)</script>',
+        ];
+        $this->postJson('/documents/templates/compile', ['blocks' => $blocks])
+            ->assertOk()->assertJsonPath('error', null)->assertJsonFragment(['error' => null])
+            ->assertSee('width:35%', false);
+        $this->postJson('/documents/templates/preview', $draft)
+            ->assertOk()->assertJsonPath('error', null)
+            ->assertSee('Nested title')->assertSee('width:35%')
+            ->assertSee('&lt;script&gt;', false);
+        $this->post('/documents/templates', $draft)->assertSessionHasNoErrors();
+        $template = DocumentTemplate::where('name', 'Example')->firstOrFail();
+        $this->assertSame('35%', $template->blocks[0]['props']['columns'][0]['width']);
+        $this->assertSame('Nested content', strip_tags($template->blocks[0]['props']['columns'][1]['blocks'][0]['props']['blocks'][0]['props']['html']));
+        $this->assertEquals($draft['margins'], $template->margins);
+        $this->assertSame('landscape', $template->orientation);
+    }
+
+    public function test_preview_and_compile_require_template_view_permission(): void
+    {
+        $this->actingAs($this->userWithPermissions(['documents.templates.create']));
+        $this->postJson('/documents/templates/compile', ['blocks' => []])->assertForbidden();
+        $this->postJson('/documents/templates/preview', [
+            'type' => 'quotation', 'editor' => 'visual', 'paper_size' => 'letter', 'orientation' => 'portrait',
+        ])->assertForbidden();
+    }
 }

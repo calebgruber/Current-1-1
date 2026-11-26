@@ -75,8 +75,10 @@ final class BlockSanitizer
             $cols = [];
             foreach (array_slice(array_values((array) ($props['columns'] ?? [])), 0, 4) as $c => $col) {
                 $col = is_array($col) ? $col : [];
+                $width = is_scalar($col['width'] ?? null) ? (string) $col['width'] : '50';
+                $width = preg_match('/^\d{1,3}(?:\.\d+)?%?$/', $width) ? (float) rtrim($width, '%') : 50;
                 $cols[] = [
-                    'width' => max(5, min(100, (int) ($col['width'] ?? 50))),
+                    'width' => max(5, min(100, $width)).'%',
                     'blocks' => $this->list((array) ($col['blocks'] ?? []), $depth + 1, "{$path}.columns.{$c}"),
                 ];
             }

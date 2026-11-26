@@ -5,6 +5,7 @@ namespace Tests\Unit\Documents;
 use App\Domain\Documents\Exceptions\TemplateException;
 use App\Domain\Documents\Services\BlockCompiler;
 use App\Domain\Documents\Services\TemplateRenderer;
+use App\Support\Html\HtmlSanitizer;
 use PHPUnit\Framework\TestCase;
 
 class BlockCompilerTest extends TestCase
@@ -95,6 +96,33 @@ class BlockCompilerTest extends TestCase
 
         $bad = $this->compileOne(['type' => 'image', 'props' => ['src' => 'x', 'width' => '10px;background:url(x)']]);
         $this->assertStringContainsString('width:auto', $bad);
+    }
+
+    public function test_image_source_expression_is_escaped_and_sanitized(): void
+    {
+        $block = ['type' => 'image', 'props' => ['src' => '{{ image.url | raw }}']];
+        $source = $this->compileOne($block);
+        $html = $this->renderer->render($source, ['image' => ['url' => 'data:image/png;base64,YQ==']]);
+        $this->assertStringContainsString('src="data:image/png;base64,YQ=="', (new HtmlSanitizer)->sanitize($html));
+
+        $html = $this->renderer->render($source, ['image' => ['url' => 'javascript:alert(1)" onerror="alert(1)']]);
+        $this->assertStringNotContainsString('" onerror=', $html);
+        $clean = (new HtmlSanitizer)->sanitize($html);
+        $this->assertStringNotContainsString('javascript:', $clean);
+        $this->assertStringNotContainsString('onerror=', $clean);
+
+        $html = $this->renderer->render($source, ['image' => ['url' => 'data:image/png;base64,YQ==" onerror="alert(1)']]);
+        $clean = (new HtmlSanitizer)->sanitize($html);
+        $document = new \DOMDocument;
+        $document->loadHTML($clean);
+        $this->assertFalse($document->getElementsByTagName('img')->item(0)->hasAttribute('onerror'));
+    }
+
+    public function test_image_source_only_interpolates_a_single_expression(): void
+    {
+        $source = $this->compileOne(['type' => 'image', 'props' => ['src' => '{{ image.url }}" onerror="alert(1)']]);
+        $this->assertStringNotContainsString('{{', $source);
+        $this->assertStringContainsString('&#123;&#123;', $source);
     }
 
     public function test_default_items_table_and_render(): void

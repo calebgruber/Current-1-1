@@ -18,5 +18,5 @@ const form = useForm({ email: '' });
         <FormField label="Email" for="email" :error="form.errors.email" required><TextInput id="email" v-model="form.email" type="email" autocomplete="email" required autofocus /></FormField>
         <Button type="submit" variant="primary" block :loading="form.processing">Send reset link</Button>
     </form>
-    <Link :href="route('login')" class="mt-4 inline-block text-sm text-accent-ink">Back to sign in</Link>
+    <Link :href="route('login')" class="st-link mt-4 text-sm">Back to sign in</Link>
 </template>

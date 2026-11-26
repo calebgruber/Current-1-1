@@ -87,5 +87,5 @@ function remove(category: Category) {
             </tbody>
         </table>
     </div>
-    <Link v-if="can('inventory.products.view')" :href="route('inventory.products.index')" class="mt-4 inline-block text-sm text-accent hover:underline">Back to products</Link>
+    <Link v-if="can('inventory.products.view')" :href="route('inventory.products.index')" class="st-link mt-4 text-sm">Back to products</Link>
 </template>

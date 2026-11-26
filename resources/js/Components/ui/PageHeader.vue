@@ -11,7 +11,7 @@ defineProps<{ title: string; description?: string; breadcrumbs?: { label: string
         <div class="min-w-0">
             <nav v-if="breadcrumbs?.length" aria-label="Breadcrumb" class="mb-1 flex items-center gap-1 text-xs text-muted">
                 <template v-for="(crumb, i) in breadcrumbs" :key="i">
-                    <Link v-if="crumb.href" :href="crumb.href" class="hover:text-ink">{{ crumb.label }}</Link>
+                    <Link v-if="crumb.href" :href="crumb.href" class="st-link">{{ crumb.label }}</Link>
                     <span v-else>{{ crumb.label }}</span>
                     <ChevronRight class="size-3" aria-hidden="true" />
                 </template>

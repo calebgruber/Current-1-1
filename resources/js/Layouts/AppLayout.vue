@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronDown, Keyboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, ShieldCheck, UserRound, X } from 'lucide-vue-next';
 import CommandPalette from '@/Components/app/CommandPalette.vue';
@@ -24,13 +24,32 @@ const paletteOpen = ref(false);
 const shortcutsOpen = ref(false);
 const mobileOpen = ref(false);
 const collapsed = ref(localStorage.getItem('stagetrack.sidebar') === 'collapsed');
+const desktopQuery = window.matchMedia('(min-width: 1024px)');
+const isDesktop = ref(desktopQuery.matches);
+const updateDesktop = (event: MediaQueryListEvent) => { isDesktop.value = event.matches; };
+onMounted(() => desktopQuery.addEventListener('change', updateDesktop));
+onUnmounted(() => desktopQuery.removeEventListener('change', updateDesktop));
 
 const user = computed(() => page.props.auth.user);
 const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase());
 
 const visible = (item: NavItem) => route().has(item.route) && (!item.permissions || item.permissions.some(can));
 const sections = computed(() => navigation.map((s) => ({ ...s, items: s.items.filter(visible) })).filter((s) => s.items.length));
-const isActive = (item: NavItem) => (item.match ? route().current(`${item.match}.*`) || route().current(item.match) : route().current(item.route));
+const activeItem = computed(() => {
+    // Access the page URL so matching is recalculated after Inertia navigation.
+    void page.url;
+    const items = sections.value.flatMap((section) => section.items);
+    return items.find((item) => route().current(item.route)) ??
+        items.filter((item) => item.match && (route().current(item.match) || route().current(`${item.match}.*`)))
+            .sort((a, b) => (b.match?.length ?? 0) - (a.match?.length ?? 0))[0];
+});
+const activeSection = computed(() => sections.value.find((section) => section.items.includes(activeItem.value as NavItem)));
+const selectedSection = ref('');
+watch([() => page.url, sections], () => {
+    selectedSection.value = activeSection.value?.label ?? (sections.value.some((section) => section.label === selectedSection.value) ? selectedSection.value : sections.value[0]?.label ?? '');
+}, { immediate: true });
+const currentSection = computed(() => sections.value.find((section) => section.label === selectedSection.value));
+const showLabels = computed(() => !collapsed.value || mobileOpen.value);
 
 const toggleSidebar = () => {
     collapsed.value = !collapsed.value;
@@ -69,6 +88,8 @@ router.on('navigate', () => (mobileOpen.value = false));
         <div v-if="mobileOpen" class="fixed inset-0 z-30 bg-black/40 lg:hidden" @click="mobileOpen = false" />
 
         <aside
+            id="main-navigation"
+            :inert="!isDesktop && !mobileOpen"
             :class="[
                 'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-line bg-surface transition-[width,transform] duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
                 collapsed ? 'lg:w-16' : 'lg:w-60',
@@ -77,9 +98,9 @@ router.on('navigate', () => (mobileOpen.value = false));
             aria-label="Main navigation"
         >
             <div class="flex h-14 items-center gap-2 px-4">
-                <Link :href="route('dashboard')" class="flex min-w-0 items-center gap-2 font-semibold">
+                <Link :href="route('dashboard')" class="flex min-w-0 items-center gap-2 rounded-md border border-line bg-canvas p-1 font-semibold hover:bg-hover" title="Dashboard">
                     <span class="grid size-7 shrink-0 place-items-center rounded-md bg-accent text-xs font-bold text-white dark:text-zinc-950">ST</span>
-                    <span v-if="!collapsed" class="truncate">{{ page.props.app.organization || page.props.app.name }}</span>
+                    <span v-if="showLabels" class="truncate">{{ page.props.app.organization || page.props.app.name }}</span>
                 </Link>
                 <button type="button" class="ml-auto rounded p-1 text-muted hover:bg-hover lg:hidden" aria-label="Close navigation" @click="mobileOpen = false"><X class="size-4" /></button>
             </div>
@@ -87,37 +108,59 @@ router.on('navigate', () => (mobileOpen.value = false));
             <button
                 type="button"
                 class="mx-3 mb-2 flex items-center gap-2 rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-faint hover:border-line-strong"
+                aria-label="Search"
                 @click="paletteOpen = true"
             >
                 <Search class="size-4 shrink-0" />
-                <template v-if="!collapsed">
+                <template v-if="showLabels">
                     <span class="flex-1 text-left">Search…</span>
                     <kbd>{{ isMac ? '⌘' : 'Ctrl' }}</kbd><kbd>K</kbd>
                 </template>
             </button>
 
-            <nav class="flex-1 overflow-y-auto px-3 pb-4">
-                <div v-for="section in sections" :key="section.label" class="mt-4 first:mt-1">
-                    <div v-if="!collapsed" class="mb-1 px-2 text-[11px] font-medium tracking-wide text-faint uppercase">{{ section.label }}</div>
-                    <ul class="space-y-0.5">
-                        <li v-for="item in section.items" :key="item.route">
+            <div class="flex-1 overflow-y-auto px-3 pb-4">
+                <p v-if="showLabels" class="mb-2 px-1 text-[11px] font-medium tracking-wide text-faint uppercase">Browse modules</p>
+                <div class="flex flex-wrap gap-1" role="group" aria-label="Module groups">
+                    <button
+                        v-for="section in sections"
+                        :key="section.label"
+                        type="button"
+                        :title="section.label"
+                        :aria-label="`${section.label}${activeSection?.label === section.label ? ', current group' : ''}`"
+                        :aria-pressed="selectedSection === section.label"
+                        :class="[
+                            'rounded-md border px-2 py-1.5 text-xs font-medium transition',
+                            selectedSection === section.label ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line bg-canvas text-muted hover:bg-hover hover:text-ink',
+                            showLabels ? '' : 'w-full',
+                        ]"
+                        @click="selectedSection = section.label"
+                    >
+                        <span v-if="showLabels">{{ section.label }}<span v-if="activeSection?.label === section.label" aria-hidden="true"> ·</span></span>
+                        <component :is="section.items[0].icon" v-else class="mx-auto size-4" aria-hidden="true" />
+                    </button>
+                </div>
+                <nav v-if="currentSection" :aria-label="`${currentSection.label} modules`" class="mt-4">
+                    <div v-if="showLabels" class="mb-2 px-1 text-[11px] font-medium tracking-wide text-faint uppercase">{{ currentSection.label }}</div>
+                    <ul class="space-y-1">
+                        <li v-for="item in currentSection.items" :key="item.route">
                             <Link
                                 :href="route(item.route)"
-                                :title="collapsed ? item.label : undefined"
-                                :aria-current="isActive(item) ? 'page' : undefined"
+                                :title="item.label"
+                                :aria-label="showLabels ? undefined : item.label"
+                                :aria-current="activeItem === item ? 'page' : undefined"
                                 :class="[
-                                    'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition',
-                                    isActive(item) ? 'bg-accent-soft font-medium text-accent-ink' : 'text-muted hover:bg-hover hover:text-ink',
-                                    collapsed ? 'justify-center' : '',
+                                    'flex items-center gap-2.5 rounded-md border px-2 py-2 text-sm transition',
+                                    activeItem === item ? 'border-accent bg-accent-soft font-medium text-accent-ink' : 'border-line bg-surface text-muted hover:bg-hover hover:text-ink',
+                                    showLabels ? '' : 'justify-center',
                                 ]"
                             >
                                 <component :is="item.icon" class="size-4 shrink-0" aria-hidden="true" />
-                                <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
+                                <span v-if="showLabels" class="truncate">{{ item.label }}</span>
                             </Link>
                         </li>
                     </ul>
-                </div>
-            </nav>
+                </nav>
+            </div>
 
             <div class="hidden border-t border-line p-2 lg:block">
                 <button type="button" class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-hover" @click="toggleSidebar">
@@ -129,7 +172,7 @@ router.on('navigate', () => (mobileOpen.value = false));
 
         <div class="flex min-w-0 flex-1 flex-col">
             <header class="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-canvas/80 px-4 backdrop-blur lg:px-8">
-                <button type="button" class="rounded p-1.5 text-muted hover:bg-hover lg:hidden" aria-label="Open navigation" @click="mobileOpen = true"><Menu class="size-5" /></button>
+                <button type="button" class="rounded p-1.5 text-muted hover:bg-hover lg:hidden" aria-label="Open navigation" :aria-expanded="mobileOpen" aria-controls="main-navigation" @click="mobileOpen = true"><Menu class="size-5" /></button>
                 <div class="flex-1"><slot name="header" /></div>
                 <button type="button" class="hidden rounded-md p-1.5 text-muted hover:bg-hover hover:text-ink sm:block" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" @click="shortcutsOpen = true"><Keyboard class="size-4" /></button>
                 <ThemeToggle />
@@ -151,6 +194,24 @@ router.on('navigate', () => (mobileOpen.value = false));
                     </div>
                 </Dropdown>
             </header>
+
+            <nav v-if="activeSection" :aria-label="`${activeSection.label} module navigation`" class="border-b border-line bg-surface px-4 lg:px-8">
+                <div class="mx-auto flex max-w-[1600px] gap-1 overflow-x-auto py-2">
+                    <Link
+                        v-for="item in activeSection.items"
+                        :key="item.route"
+                        :href="route(item.route)"
+                        :aria-current="activeItem === item ? 'page' : undefined"
+                        :class="[
+                            'inline-flex shrink-0 items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium whitespace-nowrap transition',
+                            activeItem === item ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line bg-canvas text-muted hover:bg-hover hover:text-ink',
+                        ]"
+                    >
+                        <component :is="item.icon" class="size-4 shrink-0" aria-hidden="true" />
+                        {{ item.label }}
+                    </Link>
+                </div>
+            </nav>
 
             <main id="main" class="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 lg:px-8">
                 <slot />

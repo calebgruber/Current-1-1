@@ -27,5 +27,5 @@ const toggle = () => { recovery.value = !recovery.value; form.reset(); form.clea
         <Button type="submit" variant="primary" block :loading="form.processing">Verify</Button>
     </form>
     <button class="mt-4 text-sm text-accent-ink" type="button" @click="toggle">{{ recovery ? 'Use an authenticator code' : 'Use a recovery code' }}</button>
-    <div class="mt-3"><Link :href="route('login')" class="text-sm text-accent-ink">Back to sign in</Link></div>
+    <div class="mt-3"><Link :href="route('login')" class="st-link text-sm">Back to sign in</Link></div>
 </template>

@@ -18,7 +18,7 @@ const label = (raw: string) => raw.replace('&laquo;', '‹').replace('&raquo;', 
                     preserve-scroll
                     preserve-state
                     :aria-current="link.active ? 'page' : undefined"
-                    :class="['st-num min-w-7 rounded-md px-2 py-1 text-center', link.active ? 'bg-accent text-white dark:text-zinc-950' : 'hover:bg-hover']"
+                    :class="['st-num min-w-7 rounded-md border px-2 py-1 text-center font-medium', link.active ? 'border-accent bg-accent text-white dark:text-zinc-950' : 'border-line bg-surface hover:bg-hover']"
                 >{{ label(link.label) }}</Link>
                 <span v-else class="min-w-7 px-2 py-1 text-center text-faint">{{ label(link.label) }}</span>
             </template>

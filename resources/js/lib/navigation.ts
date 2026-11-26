@@ -60,7 +60,7 @@ export const navigation: NavSection[] = [
     {
         label: 'Paperwork & insight',
         items: [
-            { label: 'Documents', route: 'documents.index', icon: FileText, permissions: ['documents.documents.view'], match: 'documents.documents' },
+            { label: 'Documents', route: 'documents.index', icon: FileText, permissions: ['documents.documents.view'], match: 'documents' },
             { label: 'Templates', route: 'documents.templates.index', icon: ScrollText, permissions: ['documents.templates.view'], match: 'documents.templates' },
             { label: 'Reports', route: 'reports.index', icon: BarChart3, permissions: ['reporting.reports.view'], match: 'reports', shortcut: 'g p' },
             { label: 'Rules', route: 'rules.index', icon: ListChecks, permissions: ['rules.rules.view'], match: 'rules' },

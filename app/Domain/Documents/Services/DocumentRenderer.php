@@ -57,6 +57,7 @@ final class DocumentRenderer
         $watermark = trim((string) ($template['watermark'] ?? ''));
         if ($watermark !== '') {
             $watermark = $this->renderer->render(str_replace(['{%', '%}'], '', $watermark), $context);
+            $watermark = htmlspecialchars(html_entity_decode($watermark, ENT_QUOTES | ENT_HTML5, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         }
 
         return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'</title>'
