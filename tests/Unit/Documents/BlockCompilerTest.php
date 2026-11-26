@@ -127,18 +127,28 @@ class BlockCompilerTest extends TestCase
 
     public function test_image_expression_preserves_query_strings_without_double_escaping(): void
     {
-        $url = 'https://example.test/image?x=1&y=2';
-        foreach (['{{ image.url }}', '{{ image.url | escape }}', '{{ image.url | raw }}'] as $expression) {
+        $urls = [
+            'https://example.test/image?x=1&y=2',
+            'https://example.test/image?x=1&copy;=2',
+            'https://example.test/image?x=1&#34;=2&amp;=3',
+        ];
+        foreach (['{{ image.url }}', '{{ image.url | escape }}', '{{ image.url | raw }}', '{{ image.url | escape | raw }}'] as $expression) {
             $source = $this->compileOne(['type' => 'image', 'props' => ['src' => $expression]]);
-            $html = (new HtmlSanitizer)->sanitize($this->renderer->render($source, ['image' => ['url' => $url]]));
-            $document = new \DOMDocument;
-            $document->loadHTML($html);
-            $this->assertSame($url, $document->getElementsByTagName('img')->item(0)->getAttribute('src'), $expression);
+            foreach ($urls as $url) {
+                $html = (new HtmlSanitizer)->sanitize($this->renderer->render($source, ['image' => ['url' => $url]]));
+                $document = new \DOMDocument;
+                $document->loadHTML($html);
+                $this->assertSame($url, $document->getElementsByTagName('img')->item(0)->getAttribute('src'), $expression);
+            }
 
-            $html = (new HtmlSanitizer)->sanitize($this->renderer->render($source, ['image' => ['url' => 'data:image/png;base64,YQ==" onerror="alert(1)']]));
-            $document = new \DOMDocument;
-            $document->loadHTML($html);
-            $this->assertFalse($document->getElementsByTagName('img')->item(0)->hasAttribute('onerror'), $expression);
+            foreach (['data:image/png;base64,YQ==" onerror="alert(1)', 'javascript:alert(1)" onerror="alert(1)'] as $payload) {
+                $html = (new HtmlSanitizer)->sanitize($this->renderer->render($source, ['image' => ['url' => $payload]]));
+                $document = new \DOMDocument;
+                $document->loadHTML($html);
+                $image = $document->getElementsByTagName('img')->item(0);
+                $this->assertFalse($image->hasAttribute('onerror'), $expression);
+                $this->assertStringNotContainsString('javascript:', $image->getAttribute('src'), $expression);
+            }
         }
     }
 

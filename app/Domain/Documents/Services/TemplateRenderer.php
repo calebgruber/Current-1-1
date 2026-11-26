@@ -345,10 +345,10 @@ final class TemplateRenderer
         $plain = $this->plain($value);
 
         return match (strtolower($name)) {
-            'raw' => new SafeString($this->plain($value) ?? ''),
-            'escape' => new SafeString(htmlspecialchars((string) $plain, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')),
-            // SafeString may contain escaped entities or raw markup; normalize before attribute escaping.
-            'escape_attr' => new SafeString(htmlspecialchars($value instanceof SafeString ? html_entity_decode((string) $plain, ENT_QUOTES | ENT_HTML5, 'UTF-8') : (string) $plain, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')),
+            'raw' => $value instanceof SafeString ? $value : new SafeString($plain ?? ''),
+            'escape' => new SafeString(htmlspecialchars((string) $plain, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), (string) $plain),
+            // Only explicitly escaped values retain their pre-escaped text; raw values are never entity-decoded.
+            'escape_attr' => $this->escapeAttribute($value),
             'nl2br' => new SafeString(nl2br(htmlspecialchars((string) $plain, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'))),
             'upper' => mb_strtoupper((string) $plain),
             'lower' => mb_strtolower((string) $plain),
@@ -366,6 +366,13 @@ final class TemplateRenderer
             'yesno' => $this->truthy($plain) ? (string) ($args[0] ?? 'Yes') : (string) ($args[1] ?? 'No'),
             default => throw new TemplateException('Unknown filter "'.$name.'"'),
         };
+    }
+
+    private function escapeAttribute(mixed $value): SafeString
+    {
+        $text = $value instanceof SafeString ? ($value->attributeText ?? $value->html) : (string) $this->plain($value);
+
+        return new SafeString(htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $text);
     }
 
     private function currency(float|int $amount, ?string $symbol): string
