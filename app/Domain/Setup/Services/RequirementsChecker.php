@@ -63,12 +63,21 @@ class RequirementsChecker
         }
 
         $env = app()->environmentFilePath();
+        $writer = new EnvironmentWriter($env);
         $checks[] = [
             'key' => 'writable.env',
-            'label' => '.env file is writable',
-            'passed' => is_file($env) ? is_writable($env) : is_writable(dirname($env)),
+            'label' => '.env can be read and atomically replaced',
+            'passed' => $writer->writable(),
             'required' => true,
-            'detail' => is_file($env) ? $env : $env.' (will be created from .env.example)',
+            'detail' => $env.' (file and parent directory must be accessible)',
+        ];
+        $lock = new SetupLock;
+        $checks[] = [
+            'key' => 'writable.setup_guard',
+            'label' => 'Setup guard file is writable',
+            'passed' => $lock->writable(),
+            'required' => true,
+            'detail' => $lock->path().' (or its parent directory if the file does not exist)',
         ];
 
         return $checks;

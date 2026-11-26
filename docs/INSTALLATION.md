@@ -34,7 +34,7 @@ Node.js is **not** required on the server: release packages contain prebuilt ass
 2. **Upload the release.** Download `stagetrack-x.y.z.zip`, open cPanel → *File Manager*, upload it to your home directory (e.g. `/home/acct/stagetrack`) — **not** inside `public_html` — and *Extract*.
 3. **Point the web root at `public/`.** In cPanel → *Domains*, set the domain or subdomain's *Document Root* to `/home/acct/stagetrack/public`. If the primary domain's document root cannot be changed, use a subdomain or ask your host for a configuration that exposes only `public/`. Do not place the project root under a web-accessible directory.
 4. **Set the PHP version** to 8.3 for the domain and enable the extensions listed above.
-5. **Permissions.** `storage/` and `bootstrap/cache/` must be writable by PHP (cPanel default `755` directories / `644` files with suPHP/PHP-FPM is fine). The `.env` file must be writable during setup.
+5. **Permissions.** `storage/` and `bootstrap/cache/` must be writable by PHP (cPanel default `755` directories / `644` files with suPHP/PHP-FPM is fine). During setup, PHP must be able to create and replace `.env` files in the application root and write `storage/app/setup.guard`.
 6. **Enable HTTPS** (cPanel → *SSL/TLS Status* → *Run AutoSSL*).
 7. Browse to your domain — you will be redirected to **`/setup`**.
 
@@ -44,12 +44,14 @@ Node.js is **not** required on the server: release packages contain prebuilt ass
 
 `EnsureApplicationInstalled` redirects every request to `/setup` until `storage/app/installed.lock` exists. After installation `/setup` returns **404**.
 
-Restrict access to the site while setting up: the wizard is unauthenticated until installation is finished, and concurrent setup sessions are not coordinated. Use only one browser session and complete setup without interruption. An existing or soft-deleted administrator cannot be replaced through setup. If that session is lost after creating the administrator but before finishing, restore a known-good installation or restart with a fresh database; the wizard cannot recover that session.
+Restrict access to the site while setting up: the wizard is unauthenticated until installation is finished, and concurrent setup sessions are not coordinated or authorized. Use only one browser session and complete setup without interruption. An existing or soft-deleted administrator cannot be replaced through setup. If that session is lost after creating the administrator but before finishing, restore a known-good installation or restart with a fresh database; the wizard cannot recover that session. Environment updates use an advisory file lock (`storage/app/setup.guard`) to prevent simultaneous key generation and conflicting writes; this does **not** make concurrent wizard sessions safe. All web workers must share a filesystem supporting `flock`, and the guard file must not be deleted while setup is running. An unwritable environment or guard file stops setup instead of using a temporary encryption key.
+
+The requirements check verifies the `.env` file and its parent directory, and the guard file (or its parent directory if it is absent). These are permission checks, not a guarantee that the filesystem supports locking or that a subsequent write will succeed. Atomic environment updates preserve the existing file's read, write, and execute permission bits; newly created files default to `0600`. If the key is missing and these paths are inaccessible, setup can fail before the requirements page loads; correct the filesystem permissions and retry.
 
 | Step | What happens |
 |---|---|
 | 1. Requirements | Checks PHP version, required extensions, writable `storage/`, `bootstrap/cache/`, `.env`. Blocking failures must be fixed before continuing. |
-| 2. Database | Enter host (usually `localhost`), port `3306`, database, user, password. *Test connection* verifies credentials and the MySQL version, then writes `DB_*`, `APP_KEY` (generated), `APP_URL`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=database` to `.env`. |
+| 2. Database | Enter host (usually `localhost`), port `3306`, database, user, password. *Test connection* verifies credentials; saving writes `DB_*` to `.env`. A missing `APP_KEY` is created before the first setup session starts. |
 | 3. Install | Runs migrations, syncs the permission catalog (`config/permissions.php` → `permissions`), writes default settings and document templates. |
 | 4. Administrator | Creates the first user with `is_super_admin = true` (name, username, email, password meeting the default policy). |
 | 5. Organization | Organization name, timezone, currency, date format, logo. |

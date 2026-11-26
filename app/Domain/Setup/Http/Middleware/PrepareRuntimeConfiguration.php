@@ -21,9 +21,7 @@ class PrepareRuntimeConfiguration
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $isSetupRoute = $request->is('setup') || $request->is('setup/*');
-
-        if ($isSetupRoute || ! Installation::isInstalled()) {
+        if (! Installation::isInstalled()) {
             config(['session.driver' => 'file', 'cache.default' => 'file']);
             $this->ensureAppKey();
         } else {
@@ -44,13 +42,7 @@ class PrepareRuntimeConfiguration
         }
 
         $writer = new EnvironmentWriter;
-        $key = $writer->get('APP_KEY') ?: app(Installer::class)->generateKey();
-
-        try {
-            $writer->set(['APP_KEY' => $key]);
-        } catch (Throwable) {
-            // The requirements step reports an unwritable .env; keep the in-memory key for this request.
-        }
+        $key = $writer->ensureAppKey(fn () => app(Installer::class)->generateKey());
 
         config(['app.key' => $key]);
         app()->forgetInstance('encrypter');

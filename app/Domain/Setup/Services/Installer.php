@@ -88,8 +88,8 @@ class Installer
             'APP_ENV' => 'production',
             'APP_DEBUG' => false,
         ];
-        if (empty(config('app.key')) && empty($this->env->get('APP_KEY'))) {
-            $values['APP_KEY'] = $this->generateKey();
+        if (empty(config('app.key'))) {
+            $this->env->ensureAppKey(fn () => $this->generateKey());
         }
         $this->env->set($values);
     }
