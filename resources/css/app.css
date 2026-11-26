@@ -3,9 +3,118 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
-@source '../**/*.js';
+@source '../**/*.{js,ts,vue}';
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Semantic design tokens. Components use these (bg-canvas, text-ink, border-line …)
+ * rather than raw palette colours so light/dark themes stay consistent.
+ */
+:root {
+    --st-canvas: #fafafa;
+    --st-surface: #ffffff;
+    --st-subtle: #f4f4f5;
+    --st-hover: #f0f0f2;
+    --st-line: #e4e4e7;
+    --st-line-strong: #d4d4d8;
+    --st-ink: #18181b;
+    --st-muted: #52525b;
+    --st-faint: #a1a1aa;
+    --st-accent: #4f46e5;
+    --st-accent-hover: #4338ca;
+    --st-accent-soft: #eef2ff;
+    --st-accent-ink: #3730a3;
+}
+
+.dark {
+    --st-canvas: #0b0b0e;
+    --st-surface: #131317;
+    --st-subtle: #1b1b21;
+    --st-hover: #22222a;
+    --st-line: #26262e;
+    --st-line-strong: #34343e;
+    --st-ink: #ececf1;
+    --st-muted: #a1a1aa;
+    --st-faint: #63636e;
+    --st-accent: #818cf8;
+    --st-accent-hover: #a5b4fc;
+    --st-accent-soft: #1e1b4b;
+    --st-accent-ink: #c7d2fe;
+    color-scheme: dark;
+}
+
+@theme inline {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --color-canvas: var(--st-canvas);
+    --color-surface: var(--st-surface);
+    --color-subtle: var(--st-subtle);
+    --color-hover: var(--st-hover);
+    --color-line: var(--st-line);
+    --color-line-strong: var(--st-line-strong);
+    --color-ink: var(--st-ink);
+    --color-muted: var(--st-muted);
+    --color-faint: var(--st-faint);
+    --color-accent: var(--st-accent);
+    --color-accent-hover: var(--st-accent-hover);
+    --color-accent-soft: var(--st-accent-soft);
+    --color-accent-ink: var(--st-accent-ink);
+}
+
+@layer base {
+    html {
+        @apply bg-canvas text-ink antialiased;
+        font-feature-settings: 'cv11', 'ss01';
+    }
+    body {
+        @apply min-h-screen text-sm;
+    }
+    *:focus-visible {
+        @apply outline-2 outline-offset-2 outline-accent;
+    }
+    ::selection {
+        @apply bg-accent/25;
+    }
+    kbd {
+        @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-line bg-subtle px-1 font-mono text-[10px] text-muted;
+    }
+}
+
+@layer components {
+    .st-input {
+        @apply block w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-faint shadow-xs transition focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none disabled:opacity-60;
+    }
+    .st-label {
+        @apply mb-1 block text-xs font-medium text-muted;
+    }
+    .st-card {
+        @apply rounded-lg border border-line bg-surface;
+    }
+    .st-table {
+        @apply w-full text-left text-sm;
+    }
+    .st-table th {
+        @apply border-b border-line px-3 py-2 text-xs font-medium tracking-wide text-muted uppercase;
+    }
+    .st-table td {
+        @apply border-b border-line px-3 py-2 align-middle;
+    }
+    .st-table tbody tr:hover {
+        @apply bg-hover/60;
+    }
+    .st-link {
+        @apply text-accent hover:underline;
+    }
+    .st-num {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }

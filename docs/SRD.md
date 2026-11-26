@@ -216,8 +216,8 @@ Priority: **M** = must (v1.0), **S** = should (v1.0 if time permits), **C** = co
 | ID | Requirement | Pri |
 |---|---|---|
 | FR-RPT-001 | Report builder over sources: products, assets, reservations, jobs, job_items, maintenance, locations, users, documents, scan_events — whitelisted columns only, including custom fields of the source entity. | M |
-| FR-RPT-002 | Filters eq, neq, gt, lt, gte, lte, contains, in, between, is_null, not_null; group by; aggregates count, sum, avg, min, max; sort; limit. | M |
-| FR-RPT-003 | Charts: bar, line, pie, none. | M |
+| FR-RPT-002 | Filters eq, neq, gt, lt, gte, lte, contains, not_contains, starts_with, in, not_in, between, empty (is null), not_empty (not null), last_days, next_days, is_true, is_false, combined with all/any; group by (with day/week/month/year date buckets); aggregates count, sum, avg, min, max; calculated columns (safe expression syntax); sort; limit (≤ 50 000 rows). | M |
+| FR-RPT-003 | Charts: bar, line, pie, doughnut, single number, none. | M |
 | FR-RPT-004 | Export CSV, XLSX, PDF (`reporting.reports.export`). | M |
 | FR-RPT-005 | Reports can be private, shared with all, or restricted to roles. | M |
 | FR-RPT-006 | Pin reports to the dashboard as widgets. | M |
