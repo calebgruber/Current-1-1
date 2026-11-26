@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Button from '@/Components/ui/Button.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
+import Badge from '@/Components/ui/Badge.vue';
+import { maintenanceStatusTone } from '@/lib/status';
 import { usePermissions } from '@/composables/usePermissions';
 defineProps<{ record: Record<string, any> }>();
 const { can } = usePermissions();
@@ -12,7 +14,7 @@ const label = (value: string) => value?.replaceAll('_', ' ') ?? '—';
         <dl class="grid gap-4 sm:grid-cols-2">
             <div><dt class="text-muted">Product</dt><dd>{{ record.product?.name ?? '—' }}</dd></div>
             <div><dt class="text-muted">Asset / quantity</dt><dd>{{ record.asset?.asset_number ?? record.quantity }}</dd></div>
-            <div><dt class="text-muted">Status</dt><dd class="capitalize">{{ label(record.status) }}</dd></div>
+            <div><dt class="text-muted">Status</dt><dd class="capitalize"><Badge :tone="maintenanceStatusTone[record.status]">{{ label(record.status) }}</Badge></dd></div>
             <div><dt class="text-muted">Type / priority</dt><dd class="capitalize">{{ label(record.type) }} / {{ record.priority }}</dd></div>
             <div><dt class="text-muted">Assigned to</dt><dd>{{ record.assignee?.name ?? '—' }}</dd></div>
             <div><dt class="text-muted">Reported by</dt><dd>{{ record.reporter?.name ?? '—' }}</dd></div>

@@ -2,6 +2,8 @@
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
+import Badge from '@/Components/ui/Badge.vue';
+import { jobStageTone } from '@/lib/status';
 import Combobox from '@/Components/ui/Combobox.vue';
 import CustomFieldDisplay from '@/Components/custom-fields/CustomFieldDisplay.vue';
 import { useFormat } from '@/composables/useFormat';
@@ -9,7 +11,7 @@ import { usePermissions } from '@/composables/usePermissions';
 import { SlidersHorizontal } from 'lucide-vue-next';
 import type { CustomFieldSchema } from '@/types';
 
-type Job = { id: number; number: string; name: string; stage_label: string; description: string | null; starts_at: string | null; returns_at: string | null; allows_allocation_edits: boolean; allowed_transitions: { value: string; label: string; allowed: boolean }[] };
+type Job = { id: number; number: string; name: string; stage: string; stage_label: string; description: string | null; starts_at: string | null; returns_at: string | null; allows_allocation_edits: boolean; allowed_transitions: { value: string; label: string; allowed: boolean }[] };
 type Item = { id: number; product: { name: string; sku: string | null } | null; required_quantity: number; spare_quantity: number; picked_quantity: number; checked_out_quantity: number; returned_quantity: number };
 const props = defineProps<{ job: Job; items: Item[]; can: { edit: boolean; delete: boolean; items_create: boolean; items_edit: boolean; items_delete: boolean; override: boolean }; findings: { message: string }[]; customFieldSchema: CustomFieldSchema[]; customFields: Record<string, any> }>();
 const { datetime } = useFormat();
@@ -38,6 +40,7 @@ const removeJob = () => { if (confirm('Delete this job?')) router.delete(route('
 
 <template>
     <PageHeader :title="`${job.number} · ${job.name}`" :description="job.stage_label">
+        <template #description><Badge :tone="jobStageTone[job.stage]">{{ job.stage_label }}</Badge></template>
         <template #actions><Link class="st-link" :href="route('jobs.index')">All jobs</Link><Link v-if="can.edit" class="st-link ml-3" :href="route('jobs.edit', job.id)">Edit</Link><button v-if="can.delete" class="st-link ml-3" @click="removeJob">Delete</button></template>
     </PageHeader>
     <div class="space-y-5">
