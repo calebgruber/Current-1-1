@@ -11,8 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 use Throwable;
 
 /** Web installer: requirements → database → application → install → administrator → finish. */
@@ -33,7 +32,7 @@ class SetupController extends Controller
         private readonly EnvironmentWriter $env,
     ) {}
 
-    public function show(Request $request): Response
+    public function show(Request $request): View
     {
         $completed = $this->completed($request);
         $requested = (string) $request->query('step', '');
@@ -42,7 +41,7 @@ class SetupController extends Controller
             $current = $requested;
         }
 
-        return Inertia::render('Setup/Wizard', [
+        return view('setup.wizard', [
             'steps' => collect(self::STEPS)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
             'current' => $current,
             'completed' => $completed,
@@ -85,7 +84,8 @@ class SetupController extends Controller
         $db = $this->validateDatabase($request);
         $error = $this->installer->testConnection($db);
 
-        return back()->with($error ? 'error' : 'success', $error ? 'Connection failed: '.$error : 'Connection successful.');
+        return back()->withInput($request->except('password'))
+            ->with($error ? 'error' : 'success', $error ? 'Connection failed: '.$error : 'Connection successful.');
     }
 
     public function database(Request $request): RedirectResponse
@@ -94,7 +94,8 @@ class SetupController extends Controller
         $db = $this->validateDatabase($request);
 
         if ($error = $this->installer->testConnection($db)) {
-            return back()->withErrors(['database' => 'Connection failed: '.$error])->withInput();
+            return back()->withErrors(['database' => 'Connection failed: '.$error])
+                ->withInput($request->except('password'));
         }
 
         try {

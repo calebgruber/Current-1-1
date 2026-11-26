@@ -10,19 +10,18 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class TwoFactorChallengeController extends Controller
 {
-    public function create(Request $request): Response|RedirectResponse
+    public function create(Request $request): View|RedirectResponse
     {
         if (! $this->pendingUser($request)) {
             return redirect()->route('login');
         }
 
-        return Inertia::render('Auth/TwoFactorChallenge');
+        return view('auth.two-factor-challenge');
     }
 
     public function store(Request $request, TwoFactorAuthenticator $twoFactor, Authenticator $auth, SessionAssurance $assurance): RedirectResponse

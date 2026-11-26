@@ -9,16 +9,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Contracts\View\View;
 
 class LoginController extends Controller
 {
-    public function create(Request $request, SecurityPolicy $policy): Response
+    public function create(Request $request, SecurityPolicy $policy): View
     {
-        return Inertia::render('Auth/Login', [
+        return view('auth.login', [
             'passkeysEnabled' => $policy->passkeysAllowed(),
-            'canResetPassword' => true,
             'status' => $request->session()->get('status'),
         ]);
     }

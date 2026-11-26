@@ -7,19 +7,18 @@ use App\Domain\Authentication\Services\SecurityPolicy;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class PasswordResetController extends Controller
 {
-    public function request(Request $request): Response
+    public function request(Request $request): View
     {
-        return Inertia::render('Auth/ForgotPassword', ['status' => $request->session()->get('status')]);
+        return view('auth.forgot-password', ['status' => $request->session()->get('status')]);
     }
 
     public function email(Request $request): RedirectResponse
@@ -35,9 +34,9 @@ class PasswordResetController extends Controller
         return back()->with('status', 'If an account exists for that address, a password reset link is on its way.');
     }
 
-    public function edit(Request $request, string $token): Response
+    public function edit(Request $request, string $token): View
     {
-        return Inertia::render('Auth/ResetPassword', [
+        return view('auth.reset-password', [
             'token' => $token,
             'email' => (string) $request->query('email', ''),
         ]);

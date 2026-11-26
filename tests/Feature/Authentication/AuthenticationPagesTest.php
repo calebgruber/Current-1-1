@@ -14,12 +14,16 @@ class AuthenticationPagesTest extends TestCase
     public function test_guest_authentication_pages_render(): void
     {
         $this->get(route('login'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Auth/Login')->has('passkeysEnabled'));
+            ->assertViewIs('auth.login')
+            ->assertSee('Sign in with a passkey')
+            ->assertSee('autocomplete="username webauthn"', false);
         $this->get(route('password.request'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Auth/ForgotPassword'));
+            ->assertViewIs('auth.forgot-password')
+            ->assertSee('Send reset link');
         $this->get(route('password.reset', ['token' => 'example', 'email' => 'user@example.com']))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Auth/ResetPassword')
-                ->where('token', 'example')->where('email', 'user@example.com'));
+            ->assertViewIs('auth.reset-password')
+            ->assertSee('name="token" value="example"', false)
+            ->assertSee('name="email" value="user@example.com"', false);
     }
 
     public function test_password_login_redirects_to_the_second_factor_page(): void
@@ -33,7 +37,9 @@ class AuthenticationPagesTest extends TestCase
             ->assertRedirect(route('two-factor.challenge'));
         $this->assertGuest();
         $this->get(route('two-factor.challenge'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Auth/TwoFactorChallenge'));
+            ->assertViewIs('auth.two-factor-challenge')
+            ->assertSee('Authenticator code')
+            ->assertSee('Use a recovery code');
     }
 
     public function test_account_security_and_password_pages_render(): void
