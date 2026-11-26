@@ -77,17 +77,17 @@ class WarehouseService
 
     public function scan(ScanMode $mode, string $code, ?ProductionJob $job, ?User $user = null, int $quantity = 1, ?string $station = null): ScanResult
     {
-        if ($mode->requiresJob() && ! $job) {
-            $result = ScanResult::error('Choose a job', 'Select or scan a job before scanning equipment in '.$mode->label().' mode.');
-            $this->log($mode, $code, $result, null, null, $user, $quantity, $station);
-
-            return $result;
-        }
-
         // A job number scanned in any mode is a convenient way to switch jobs.
         if ($scannedJob = ProductionJob::query()->where('number', trim($code))->first()) {
             $result = new ScanResult(ScanResult::SUCCESS, 'Job selected', $scannedJob->number.' — '.$scannedJob->name, [['type' => 'select_job', 'job_id' => $scannedJob->id]]);
             $this->log($mode, $code, $result, $scannedJob, null, $user, 1, $station);
+
+            return $result;
+        }
+
+        if ($mode->requiresJob() && ! $job) {
+            $result = ScanResult::error('Choose a job', 'Select or scan a job before scanning equipment in '.$mode->label().' mode.');
+            $this->log($mode, $code, $result, null, null, $user, $quantity, $station);
 
             return $result;
         }

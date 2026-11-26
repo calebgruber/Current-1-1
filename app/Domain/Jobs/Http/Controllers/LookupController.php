@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\Gate;
 class LookupController extends Controller
 {
     private const VIEW_KEYS = [
-        'jobs.jobs.view', 'reservations.reservations.view',
+        'jobs.jobs.view', 'jobs.jobs.create', 'jobs.jobs.edit', 'jobs.items.create',
+        'reservations.reservations.view', 'reservations.reservations.create', 'reservations.reservations.edit',
         'warehouse.picking.view', 'warehouse.prep.view', 'warehouse.staging.view',
         'warehouse.checkout.view', 'warehouse.returns.view', 'warehouse.damage.view', 'warehouse.display.view',
     ];

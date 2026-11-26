@@ -5,6 +5,7 @@ namespace App\Domain\Reporting\Http\Controllers;
 use App\Domain\Reporting\Models\Report;
 use App\Domain\Reporting\Models\ReportSchedule;
 use App\Domain\Reporting\Services\ReportExporter;
+use App\Domain\Reporting\Services\ReportSourceRegistry;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -95,6 +96,8 @@ class ReportScheduleController extends Controller
         Gate::authorize('reporting.reports.view');
         Gate::authorize('reporting.schedules.'.$action);
         abort_unless($report->isVisibleTo($request->user()), 403);
+        $registry = app(ReportSourceRegistry::class);
+        abort_unless($registry->has($report->source) && $request->user()->can($registry->get($report->source)['permission']), 403);
         if ($action !== 'view') {
             // Scheduled deliveries export data, so the scheduler must be allowed to export it.
             Gate::authorize('reporting.reports.export');

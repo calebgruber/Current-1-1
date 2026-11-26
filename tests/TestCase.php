@@ -33,12 +33,17 @@ abstract class TestCase extends BaseTestCase
     protected function superAdmin(array $attributes = []): User
     {
         $user = User::factory()->create($attributes);
-        // Super admins must have 2FA by default policy; enrol a dummy secret so tests reach the page.
+        // Most feature tests exercise authorization after an already verified 2FA login.
         $user->forceFill([
             'is_super_admin' => true,
             'two_factor_secret' => 'JBSWY3DPEHPK3PXP',
             'two_factor_confirmed_at' => now(),
         ])->save();
+        $this->withSession(['auth.second_factor' => [
+            'user' => (string) $user->getKey(),
+            'method' => 'totp',
+            'secret_hash' => hash('sha256', $user->two_factor_secret),
+        ]]);
 
         return $user;
     }

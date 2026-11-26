@@ -5,7 +5,13 @@ StageTrack is an Inertia.js monolith ([ADR-001](DECISIONS.md#adr-001--laravel--i
 - **Page endpoints** return an Inertia response, which is HTML on the first load and JSON `{component, props, url, version}` when the request has an `X-Inertia` header. Each one is listed with its component (`{Module}/{Page}`) and its main props.
 - **JSON endpoints** are used by interactive widgets: search, scan, availability, preview, report run, conflicts, validation and passkeys. They are documented with request and response examples.
 
-> **Source of truth.** Module routes live in `app/Domain/{Module}/routes.php` and are loaded by `ModuleServiceProvider` inside the `web` middleware group. When this document was written, only `routes/web.php` (`GET /`), the framework routes (`/up`) and the `laravel/passkeys` vendor routes existed in code. The module routes below are the agreed design. Paths match the model `url` accessors already in the code (`/jobs/{id}`, `/assets/{id}`, `/inventory/products/{id}`, …). Before integrating, check them with `php artisan route:list`.
+> **Implementation status.** This is a design specification, not an inventory of implemented endpoints. Module routes live in `app/Domain/{Module}/routes.php` and are loaded by `ModuleServiceProvider` inside the `web` middleware group. Check those files and `php artisan route:list` before integrating. Known differences include:
+>
+> - Setup requirements uses `POST`, not `GET`; `/setup/database/test` and `/setup/application` exist, while `/setup/organization` does not.
+> - The search page route is named `search.index`. Warehouse station and display paths differ from the design below, and scan-event undo routes are not implemented.
+> - Custom-field input endpoints are `/custom-fields/lookup`, `/custom-fields/upload` and `/custom-fields/download`. Definition management, settings, administration and the HTTP cron endpoint are not implemented.
+>
+> Other differences may remain; request and response examples below have not been comprehensively verified against the implementation.
 
 ## Contents
 
@@ -119,7 +125,7 @@ For super admins `auth.permissions` is `["*"]`. Guests get `auth.user: null`.
 | DELETE | `/account/sessions/{id}` | `account.security.sessions.destroy` | auth + password.confirm | Revokes one session |
 | DELETE | `/account/sessions` | `account.security.sessions.destroy-others` | auth + password.confirm | Signs out all other sessions |
 
-`EnforceSecurityPolicy` redirects to `account.security` when 2FA is required but not configured, or when the password has expired. These routes are exempt: `account.security*`, `account.password*`, `logout`, `two-factor.*`, `passkey.*` and `password.confirm*`.
+`EnforceSecurityPolicy` requires a verified second factor in the current session when 2FA is required, not just an enrolled factor. A verified passkey login or password plus TOTP/recovery code satisfies the policy. Without a usable factor, security setup remains available; once a factor exists, an unverified session can view security settings or sign out but cannot replace factors or access the rest of the application. Such sessions must sign in again using a factor. JSON requests receive a 403 instead of a redirect. Password expiry is enforced separately.
 
 Sessions response:
 

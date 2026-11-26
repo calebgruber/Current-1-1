@@ -4,6 +4,7 @@ namespace App\Domain\Authentication\Http\Controllers;
 
 use App\Domain\Administration\Models\AuditLog;
 use App\Domain\Authentication\Services\Authenticator;
+use App\Domain\Authentication\Services\SessionAssurance;
 use App\Domain\Authentication\Services\TwoFactorAuthenticator;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -24,7 +25,7 @@ class TwoFactorChallengeController extends Controller
         return Inertia::render('Auth/TwoFactorChallenge');
     }
 
-    public function store(Request $request, TwoFactorAuthenticator $twoFactor, Authenticator $auth): RedirectResponse
+    public function store(Request $request, TwoFactorAuthenticator $twoFactor, Authenticator $auth, SessionAssurance $assurance): RedirectResponse
     {
         $user = $this->pendingUser($request);
         if (! $user) {
@@ -52,6 +53,7 @@ class TwoFactorChallengeController extends Controller
 
         $pending = $request->session()->pull('login.two_factor');
         $auth->completeLogin($request, $user, (bool) ($pending['remember'] ?? false), 'login', 'Signed in with password + '.$method);
+        $assurance->markTwoFactor($request, $user);
 
         return redirect()->intended(route('dashboard'));
     }

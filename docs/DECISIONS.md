@@ -58,7 +58,7 @@ Short ADRs for the decisions that shape StageTrack Enterprise. Format: *Context 
 
 **Decision.** Use `laravel/passkeys` (server) and `@laravel/passkeys` (browser). The `User` model implements `PasskeyUser` with `PasskeyAuthenticatable`. `Passkeys::authorizeLoginUsing` in `AppServiceProvider` enforces `is_active` and `security.allow_passkeys`, updates login metadata and writes `login.passkey` audit events.
 
-**Consequences.** Package routes (`/passkeys/login/options`, `/passkeys/login`, `/user/passkeys…`) are used as-is; passkey sign-in satisfies the "2FA required" policy.
+**Consequences.** Package routes (`/passkeys/login/options`, `/passkeys/login`, `/user/passkeys…`) are used as-is; verified passkey sign-in satisfies the "2FA required" policy. Enrollment alone does not: each session must have verified its own passkey or TOTP/recovery code. Existing sessions without proof, including sessions restored by remember-me, must sign in again. If an eligible factor already exists, security changes are blocked until it is verified; first-time enrollment remains available.
 
 ## ADR-008 — A safe template language for user-authored documents
 

@@ -2,6 +2,8 @@
 
 This guide covers installing StageTrack Enterprise on **cPanel shared hosting** (no SSH or Docker required), day-to-day operations, and setting up a **local development** environment.
 
+> **Development status:** This guide describes the intended release and has not been validated against a complete application. Do not deploy it to production. Exposing the project root can expose configuration and other private files.
+
 - [1. Requirements](#1-requirements)
 - [2. cPanel installation](#2-cpanel-installation)
 - [3. Setup wizard](#3-setup-wizard)
@@ -30,18 +32,7 @@ Node.js is **not** required on the server: release packages contain prebuilt ass
 
 1. **Create the database.** cPanel → *MySQL® Database Wizard*: create a database (e.g. `acct_stagetrack`), a user with a strong password, and grant **ALL PRIVILEGES**.
 2. **Upload the release.** Download `stagetrack-x.y.z.zip`, open cPanel → *File Manager*, upload it to your home directory (e.g. `/home/acct/stagetrack`) — **not** inside `public_html` — and *Extract*.
-3. **Point the web root at `public/`.** Choose one:
-   - **Addon domain / subdomain (recommended):** cPanel → *Domains* → set *Document Root* to `/home/acct/stagetrack/public`.
-   - **Primary domain with fixed `public_html`:** extract into `public_html/stagetrack` (or `public_html` itself) and keep the shipped root `.htaccess`, which rewrites every request into `public/` and denies access to everything else:
-
-     ```apache
-     <IfModule mod_rewrite.c>
-         RewriteEngine On
-         RewriteRule ^(.*)$ public/$1 [L]
-     </IfModule>
-     ```
-
-     Verify that `https://your-domain/.env` and `https://your-domain/storage/logs/laravel.log` return **403/404**.
+3. **Point the web root at `public/`.** In cPanel → *Domains*, set the domain or subdomain's *Document Root* to `/home/acct/stagetrack/public`. If the primary domain's document root cannot be changed, use a subdomain or ask your host for a configuration that exposes only `public/`. Do not place the project root under a web-accessible directory.
 4. **Set the PHP version** to 8.3 for the domain and enable the extensions listed above.
 5. **Permissions.** `storage/` and `bootstrap/cache/` must be writable by PHP (cPanel default `755` directories / `644` files with suPHP/PHP-FPM is fine). The `.env` file must be writable during setup.
 6. **Enable HTTPS** (cPanel → *SSL/TLS Status* → *Run AutoSSL*).

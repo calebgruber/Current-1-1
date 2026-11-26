@@ -138,6 +138,12 @@ final class RuleEvaluator
         if ($check === 'min_spares' && ! isset($req['ratio']) && ! isset($req['quantity'])) {
             $errors[] = 'Enter a spare ratio or minimum spare quantity.';
         }
+        if (isset($req['quantity']) && (float) $req['quantity'] < 0) {
+            $errors[] = 'Quantity cannot be negative.';
+        }
+        if (isset($req['ratio']) && ((float) $req['ratio'] < 0 || (float) $req['ratio'] > 1)) {
+            $errors[] = 'Spare ratio must be between zero and one.';
+        }
 
         return $errors;
     }

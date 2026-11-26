@@ -300,7 +300,7 @@ public function authorize(): bool { return $this->user()->can('inventory.product
 ## 4. Super administrator
 
 - Created by the setup wizard (step "super admin"); further super admins can be toggled by an existing super admin in *Administration → Users*.
-- `security.require_two_factor_for_admins` (default **true**) forces super admins to enrol TOTP or a passkey before using the app (`EnforceSecurityPolicy`).
+- `security.require_two_factor_for_admins` (default **true**) requires super admins to verify TOTP, a recovery code, or a passkey in the current session before using the app (`EnforceSecurityPolicy`). An enrolled factor alone is not proof; remembered and pre-existing sessions without proof must sign in again.
 - The last remaining active super admin cannot be deactivated, demoted or deleted.
 
 ## 5. Example roles (illustrative only — not created by StageTrack)

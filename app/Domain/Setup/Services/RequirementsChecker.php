@@ -5,7 +5,7 @@ namespace App\Domain\Setup\Services;
 /** Server capability checks shown on the first step of the setup wizard. */
 class RequirementsChecker
 {
-    public const MIN_PHP = '8.2.0';
+    public const MIN_PHP = '8.3.0';
 
     /** @return list<array{key: string, label: string, passed: bool, required: bool, detail: string}> */
     public function checks(): array
@@ -16,10 +16,16 @@ class RequirementsChecker
             'passed' => version_compare(PHP_VERSION, self::MIN_PHP, '>='),
             'required' => true,
             'detail' => 'Running PHP '.PHP_VERSION,
+        ], [
+            'key' => 'ext.database_driver',
+            'label' => 'MySQL / MariaDB or SQLite database driver',
+            'passed' => extension_loaded('pdo_mysql') || extension_loaded('pdo_sqlite'),
+            'required' => true,
+            'detail' => 'At least one supported PDO driver is required.',
         ]];
 
         $extensions = [
-            'pdo_mysql' => [true, 'MySQL / MariaDB database driver'],
+            'pdo_mysql' => [false, 'MySQL / MariaDB database driver'],
             'mbstring' => [true, 'Multibyte string handling'],
             'openssl' => [true, 'Encryption and secure tokens'],
             'zip' => [true, 'Backups and updates'],

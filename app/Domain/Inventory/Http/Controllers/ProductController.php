@@ -471,9 +471,9 @@ class ProductController extends Controller
             $data['manufacturer_id'] = Manufacturer::query()->firstOrCreate(['name' => mb_substr($name, 0, 255)])->id;
         }
         unset($data['manufacturer_name']);
-        $data['is_active'] = (bool) ($data['is_active'] ?? true);
-        $data['tags'] ??= [];
-        $data['accessories'] ??= [];
+        if (array_key_exists('is_active', $data)) {
+            $data['is_active'] = (bool) $data['is_active'];
+        }
 
         return $data;
     }

@@ -17,10 +17,13 @@ use App\Domain\Rules\Models\ValidationRule;
 use App\Domain\Settings\Services\SettingsRepository;
 use App\Domain\Authentication\Models\Role;
 use App\Domain\Authentication\Services\SecurityPolicy;
+use App\Domain\Authentication\Services\SessionAssurance;
 use App\Models\User;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\ValidationException;
 use Laravel\Passkeys\Contracts\PasskeyUser;
@@ -67,6 +70,23 @@ class AppServiceProvider extends ServiceProvider
             return null;
         });
 
+        Event::listen(Login::class, function (Login $event): void {
+            if ($event->guard !== 'web' || ! $event->user instanceof User) {
+                return;
+            }
+
+            $request = request();
+            if (! $request->hasSession()) {
+                return;
+            }
+            $assurance = app(SessionAssurance::class);
+            $assurance->clear($request);
+            $passkey = $request->attributes->get('verified_login_passkey');
+            if ($passkey instanceof Passkey && (string) $passkey->user_id === (string) $event->user->getKey()) {
+                $assurance->markPasskey($request, $event->user, $passkey);
+            }
+        });
+
         Passkeys::authorizeLoginUsing(function (Request $request, PasskeyUser $user, Passkey $passkey): bool {
             /** @var User $user */
             if (! $user->is_active || ! app(SecurityPolicy::class)->passkeysAllowed()) {
@@ -74,6 +94,7 @@ class AppServiceProvider extends ServiceProvider
             }
             $user->forceFill(['last_login_at' => now(), 'last_login_ip' => $request->ip(), 'failed_login_attempts' => 0])->saveQuietly();
             AuditLog::record('login.passkey', $user, [], [], 'Signed in with passkey "'.$passkey->name.'"', $user->id);
+            $request->attributes->set('verified_login_passkey', $passkey);
 
             return true;
         });

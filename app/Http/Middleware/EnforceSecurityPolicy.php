@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\Authentication\Services\SecurityPolicy;
+use App\Domain\Authentication\Services\SessionAssurance;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnforceSecurityPolicy
 {
-    public function __construct(private readonly SecurityPolicy $policy) {}
+    public function __construct(private readonly SecurityPolicy $policy, private readonly SessionAssurance $assurance) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -32,13 +33,32 @@ class EnforceSecurityPolicy
             return redirect()->route('login')->withErrors(['login' => 'Your account has been deactivated.']);
         }
 
+        if ($this->policy->requiresTwoFactor($user) && ! $this->assurance->satisfied($request, $user, $this->policy)) {
+            $hasFactor = $user->hasTwoFactorEnabled()
+                || ($this->policy->passkeysAllowed() && $user->passkeys()->exists());
+
+            // Existing factors must be verified before they can be replaced.
+            if ($request->routeIs('logout') || ($request->isMethod('GET') && $request->routeIs('account.security'))) {
+                return $next($request);
+            }
+            if (! $hasFactor && $request->routeIs('account.security*', 'passkey.*', 'password.confirm*', 'account.password*')) {
+                return $next($request);
+            }
+
+            $warning = $hasFactor
+                ? 'Sign out and sign in using your authenticator app or passkey to continue.'
+                : 'Your organization requires two-factor authentication or a passkey. Please set one up to continue.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $warning], 403);
+            }
+
+            return redirect()->route('account.security')->with('warning', $warning);
+        }
+
         $exempt = $request->routeIs('account.security*', 'logout', 'two-factor.*', 'passkey.*', 'password.confirm*', 'account.password*');
         if ($exempt) {
             return $next($request);
-        }
-
-        if ($this->policy->requiresTwoFactor($user) && ! $user->hasTwoFactorEnabled() && $user->passkeys()->doesntExist()) {
-            return redirect()->route('account.security')->with('warning', 'Your organization requires two-factor authentication or a passkey. Please set one up to continue.');
         }
 
         if ($this->policy->passwordExpired($user)) {

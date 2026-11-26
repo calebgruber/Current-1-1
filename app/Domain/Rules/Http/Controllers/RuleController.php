@@ -174,7 +174,7 @@ class RuleController extends Controller
         $job = ProductionJob::query()->findOrFail($data['job_id']);
         $items = $job->items()->with(['product.tags', 'product.customFieldValues.definition'])->get();
         $lines = $this->validation->lines($items);
-        $rule = ['id' => null, 'name' => $data['name'] ?: 'Draft rule', 'severity' => $data['severity'] ?? 'warning', 'definition' => $definition];
+        $rule = ['id' => null, 'name' => ($data['name'] ?? null) ?: 'Draft rule', 'severity' => $data['severity'] ?? 'warning', 'definition' => $definition];
         $findings = array_map(fn (RuleFinding $f) => $f->toArray(), $this->evaluator->evaluate($lines, [$rule]));
         $matched = $this->evaluator->matching($lines, $definition['scope']);
         $supporting = in_array($definition['check'], ['requires', 'requires_any'], true)
@@ -278,7 +278,7 @@ class RuleController extends Controller
             if ($withQuantities) {
                 foreach (['per', 'quantity', 'ratio'] as $k) {
                     if (isset($s[$k]) && is_numeric($s[$k])) {
-                        $out[$k] = $k === 'ratio' ? round((float) $s[$k], 4) : max(0, min(10000, (float) $s[$k]));
+                        $out[$k] = $k === 'ratio' ? round((float) $s[$k], 4) : min(10000, (float) $s[$k]);
                     }
                 }
             }
@@ -306,9 +306,6 @@ class RuleController extends Controller
         ]);
         $definition = $this->cleanDefinition($data['definition']);
         $errors = $this->evaluator->validateDefinition($definition);
-        if ($definition['check'] === 'max_quantity' && (int) ($definition['requirement']['quantity'] ?? 0) < 0) {
-            $errors[] = 'The maximum quantity cannot be negative.';
-        }
         if ($errors) {
             throw ValidationException::withMessages(['definition' => $errors]);
         }

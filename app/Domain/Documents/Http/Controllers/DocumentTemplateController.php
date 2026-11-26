@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -121,7 +122,14 @@ class DocumentTemplateController extends Controller
     public function update(TemplateRequest $request, DocumentTemplate $template): RedirectResponse
     {
         DB::transaction(function () use ($request, $template) {
+            $changingDefaultType = $template->is_default && $template->type !== $request->validated('type');
+            if ($changingDefaultType && ! $request->user()->can('documents.templates.admin')) {
+                throw ValidationException::withMessages(['type' => 'Only a template administrator can change the type of a default template.']);
+            }
             $template->fill($this->payload($request));
+            if ($changingDefaultType) {
+                $template->is_default = false;
+            }
             $template->version = (int) $template->version + 1;
             $template->save();
             if ($request->boolean('is_default') && ! $template->is_default && $request->user()->can('documents.templates.admin')) {

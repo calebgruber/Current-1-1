@@ -3,6 +3,7 @@
 namespace App\Domain\Authentication\Http\Controllers\Account;
 
 use App\Domain\Authentication\Services\SecurityPolicy;
+use App\Domain\Authentication\Services\SessionAssurance;
 use App\Domain\Authentication\Services\TwoFactorAuthenticator;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +26,7 @@ class TwoFactorController extends Controller
         return response()->json($this->twoFactor->beginEnrolment($user));
     }
 
-    public function confirm(Request $request): JsonResponse
+    public function confirm(Request $request, SessionAssurance $assurance): JsonResponse
     {
         $data = $request->validate(['code' => ['required', 'string', 'max:16']]);
         $user = $request->user();
@@ -38,6 +39,8 @@ class TwoFactorController extends Controller
         if ($codes === null) {
             throw ValidationException::withMessages(['code' => 'That code is not valid. Check the time on your device and try again.']);
         }
+
+        $assurance->markTwoFactor($request, $user);
 
         return response()->json(['recovery_codes' => $codes]);
     }

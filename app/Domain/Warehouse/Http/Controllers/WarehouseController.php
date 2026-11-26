@@ -98,10 +98,13 @@ class WarehouseController extends Controller
         ]);
     }
 
-    public function station(Request $request, string $station, ?ProductionJob $job = null): Response
+    public function station(Request $request): Response
     {
+        $station = $request->route('station');
         $mode = self::STATIONS[$station] ?? abort(404);
         Gate::authorize("warehouse.{$station}.view");
+        $jobId = $request->route('job');
+        $job = $jobId ? ProductionJob::query()->findOrFail($jobId) : null;
         $user = $request->user();
         $job?->load(['client:id,name', 'venue:id,name']);
 
@@ -144,7 +147,7 @@ class WarehouseController extends Controller
             'job' => $job ? $this->progress->header($job) : null,
             'lines' => $progress['lines'] ?? [],
             'totals' => $progress['totals'] ?? null,
-            'initialMode' => ($mode && $mode !== ScanMode::Lookup) ? $mode->value : ScanMode::Pick->value,
+            'initialMode' => ($mode && ! in_array($mode, [ScanMode::Lookup, ScanMode::Damage], true)) ? $mode->value : ScanMode::Pick->value,
             'modes' => collect(self::STATIONS)->except('damage')->map(fn (ScanMode $m, string $slug) => [
                 'value' => $m->value,
                 'label' => $m->label(),
