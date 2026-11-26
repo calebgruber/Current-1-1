@@ -41,7 +41,7 @@ class DeliverScheduledReports extends Command
             }
             // Deliver only what the report owner may still see/export.
             $permission = $registry->get($report->source)['permission'];
-            if (! $owner || ! $owner->is_active_user() || ! $owner->can($permission) || ! $owner->can('reporting.reports.export')) {
+            if (! $owner || ! $owner->is_active || ! $owner->can($permission) || ! $owner->can('reporting.reports.export')) {
                 $this->warn("Schedule #{$schedule->id}: owner can no longer export \"{$report->name}\"; skipped.");
                 $schedule->forceFill(['next_run_at' => $schedule->computeNextRun($now)])->save();
 

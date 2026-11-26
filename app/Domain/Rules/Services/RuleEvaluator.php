@@ -17,7 +17,7 @@ use App\Domain\Rules\DTOs\RuleFinding;
  *     "scope":       {"match": "category|tag|product|name|custom_field|any", "values": [...],
  *                     "field": "<custom field key>", "operator": "is|contains"},
  *     "check":       "requires|requires_any|max_quantity|min_spares",
- *     "requirement": {"match": "category|tag|product", "values": [...],
+ *     "requirement": {"match": "category|tag|product|name|custom_field", "values": [...],
  *                     "per": 1, "quantity": 1, "ratio": 0.1},
  *     "basis":       "pull|required",
  *     "message":     "Moving lights need {required} PowerCON cables; found {found}."
@@ -140,6 +140,12 @@ final class RuleEvaluator
         }
 
         return $errors;
+    }
+
+    /** Lines matched by a selector (used by the builder's "test rule" panel). */
+    public function matching(array $lines, array $selector): array
+    {
+        return array_values(array_filter($lines, fn ($l) => $this->matches($l, $selector)));
     }
 
     private function selectorError(array $selector, string $where): ?string
