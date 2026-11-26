@@ -4,6 +4,26 @@ namespace App\Support;
 
 final class DecimalComparison
 {
+    /** Preserve all information still present in a float, independent of PHP's precision setting. */
+    public static function numberToString(mixed $value): ?string
+    {
+        if (is_string($value) || is_int($value)) {
+            return (string) $value;
+        }
+        if (! is_float($value) || ! is_finite($value)) {
+            return null;
+        }
+        $separator = localeconv()['decimal_point'] ?: '.';
+        for ($precision = 1; $precision <= 17; $precision++) {
+            $candidate = str_replace($separator, '.', sprintf('%.*g', $precision, $value));
+            if ((float) $candidate === $value) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
     /** Compare decimal strings without float conversion; null means invalid input. */
     public static function compare(string $left, string $right): ?int
     {

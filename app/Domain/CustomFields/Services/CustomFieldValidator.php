@@ -88,7 +88,8 @@ final class CustomFieldValidator
                 if (! is_numeric($value)) {
                     return ["{$label} must be a number.", null];
                 }
-                $n = $this->decimal((string) $value, $def['type'] === 'currency');
+                $number = DecimalComparison::numberToString($value);
+                $n = $number !== null ? $this->decimal($number, $def['type'] === 'currency') : null;
                 if ($n === null) {
                     return ["{$label} must fit within 14 integer digits and 4 decimal places.", null];
                 }
@@ -96,9 +97,8 @@ final class CustomFieldValidator
                     if (! isset($rules[$bound])) {
                         continue;
                     }
-                    $limit = $rules[$bound];
-                    $comparison = is_string($limit) || is_int($limit) || is_float($limit)
-                        ? DecimalComparison::compare($n, (string) $limit) : null;
+                    $limit = DecimalComparison::numberToString($rules[$bound]);
+                    $comparison = $limit !== null ? DecimalComparison::compare($n, $limit) : null;
                     if ($comparison === null) {
                         return ["{$label} has an invalid {$bound} limit.", null];
                     }

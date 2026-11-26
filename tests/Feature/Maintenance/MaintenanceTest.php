@@ -6,6 +6,7 @@ use App\Domain\Assets\Enums\AssetStatus;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Inventory\Models\Product;
 use App\Domain\Inventory\Services\AvailabilityService;
+use App\Domain\Jobs\Models\ProductionJob;
 use App\Domain\Maintenance\Models\MaintenanceRecord;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -77,6 +78,71 @@ class MaintenanceTest extends TestCase
         $this->put("/maintenance/{$record->id}", $this->payload($product, null, ['status' => 'completed']))->assertForbidden();
         $this->put("/maintenance/{$record->id}", $this->payload($product, null, ['status' => 'in_progress']))->assertSessionHasNoErrors();
         $this->assertSame('in_progress', $record->fresh()->status->value);
+    }
+
+    public function test_asset_lookup_requires_create_permission_and_matches_exact_codes_within_product(): void
+    {
+        $product = Product::factory()->create(['is_active' => false]);
+        $other = Product::factory()->create();
+        $asset = Asset::factory()->create(['product_id' => $product->id, 'barcode' => 'BAR-100', 'serial_number' => 'Serial-100', 'asset_number' => 'ASSET-100']);
+        Asset::factory()->create(['product_id' => $other->id, 'serial_number' => 'Serial-100']);
+        $body = ['product_id' => $product->id, 'code' => 'BAR-100'];
+
+        $this->postJson('/maintenance/asset-lookup', $body)->assertUnauthorized();
+        $this->actingAs($this->userWithPermissions(['maintenance.records.view']))->postJson('/maintenance/asset-lookup', $body)->assertForbidden();
+        $this->actingAs($this->userWithPermissions(['maintenance.records.create']));
+        foreach (['BAR-100', 'Serial-100', 'ASSET-100'] as $code) {
+            $this->postJson('/maintenance/asset-lookup', ['product_id' => $product->id, 'code' => $code])
+                ->assertOk()->assertExactJson(['asset' => ['id' => $asset->id, 'asset_number' => 'ASSET-100']]);
+        }
+        $this->postJson('/maintenance/asset-lookup', ['product_id' => $product->id, 'code' => 'serial-100'])->assertNotFound();
+        $this->postJson('/maintenance/asset-lookup', ['product_id' => $other->id, 'code' => 'BAR-100'])->assertNotFound();
+        $this->postJson('/maintenance/asset-lookup', ['product_id' => $product->id, 'code' => 'unknown'])->assertNotFound();
+        $this->postJson('/maintenance/asset-lookup', ['product_id' => $product->id, 'code' => ''])->assertUnprocessable();
+        $this->postJson('/maintenance/asset-lookup', ['product_id' => $product->id, 'code' => str_repeat('a', 129)])->assertUnprocessable();
+        $this->postJson('/maintenance/asset-lookup', ['product_id' => Product::factory()->bulk()->create()->id, 'code' => 'BAR-100'])->assertUnprocessable();
+    }
+
+    public function test_lookup_detects_ambiguous_codes_and_rejects_deleted_or_unavailable_assets(): void
+    {
+        $product = Product::factory()->create();
+        $first = Asset::factory()->create(['product_id' => $product->id, 'serial_number' => 'DUPLICATE']);
+        $second = Asset::factory()->create(['product_id' => $product->id, 'serial_number' => 'DUPLICATE']);
+        $this->actingAs($this->superAdmin());
+        $lookup = fn (string $code) => $this->postJson('/maintenance/asset-lookup', ['product_id' => $product->id, 'code' => $code]);
+        $lookup('DUPLICATE')->assertStatus(409)->assertJsonMissingPath('asset');
+        $second->update(['serial_number' => $first->barcode]);
+        $lookup($first->barcode)->assertStatus(409)->assertJsonMissingPath('asset');
+        $second->delete();
+        $lookup('DUPLICATE')->assertOk()->assertJsonPath('asset.id', $first->id);
+        foreach (['available', 'damaged', 'maintenance'] as $status) {
+            $first->update(['status' => $status]);
+            $lookup($first->barcode)->assertOk();
+        }
+        foreach (['retired', 'lost', 'allocated', 'checked_out'] as $status) {
+            $first->update(['status' => $status]);
+            $lookup($first->barcode)->assertUnprocessable()->assertJsonMissingPath('asset');
+        }
+        $first->delete();
+        $lookup($first->barcode)->assertNotFound();
+        $product->delete();
+        $lookup('DUPLICATE')->assertUnprocessable();
+    }
+
+    public function test_lookup_selection_is_revalidated_on_save_without_a_job(): void
+    {
+        $product = Product::factory()->create();
+        $asset = Asset::factory()->create(['product_id' => $product->id]);
+        $this->actingAs($this->superAdmin());
+        $this->postJson('/maintenance/asset-lookup', ['product_id' => $product->id, 'code' => $asset->barcode])->assertOk();
+        $asset->update(['status' => 'checked_out']);
+        $this->post('/maintenance', $this->payload($product, $asset))->assertSessionHasErrors('asset_id');
+        $asset->update(['status' => 'available']);
+        $this->post('/maintenance', $this->payload($product, $asset, ['job_id' => null]))->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('maintenance_records', ['product_id' => $product->id, 'asset_id' => $asset->id, 'job_id' => null]);
+        $job = ProductionJob::factory()->create();
+        $this->post('/maintenance', $this->payload($product, $asset, ['job_id' => $job->id]))->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('maintenance_records', ['asset_id' => $asset->id, 'job_id' => $job->id]);
     }
 
     public function test_invalid_targets_and_unsafe_asset_states_are_rejected(): void

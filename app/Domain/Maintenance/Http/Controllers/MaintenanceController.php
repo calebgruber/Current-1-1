@@ -2,6 +2,7 @@
 
 namespace App\Domain\Maintenance\Http\Controllers;
 
+use App\Domain\Assets\Enums\AssetStatus;
 use App\Domain\Assets\Models\Asset;
 use App\Domain\Inventory\Models\Product;
 use App\Domain\Jobs\Models\ProductionJob;
@@ -11,6 +12,7 @@ use App\Domain\Maintenance\Models\MaintenanceRecord;
 use App\Domain\Maintenance\Services\MaintenanceService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -36,6 +38,41 @@ class MaintenanceController extends Controller
         Gate::authorize('maintenance.records.create');
 
         return Inertia::render('Maintenance/Form', $this->formProps(null));
+    }
+
+    public function lookupAsset(Request $request): JsonResponse
+    {
+        Gate::authorize('maintenance.records.create');
+        $data = $request->validate([
+            'product_id' => ['required', 'integer'],
+            'code' => ['required', 'string', 'max:128'],
+        ]);
+        $code = trim($data['code']);
+        $product = Product::query()->find($data['product_id']);
+        if ($code === '' || ! $product || ! $product->isSerialized()) {
+            return response()->json(['message' => 'Select a serialized product and enter a valid code.'], 422);
+        }
+
+        // Verify exact case-sensitive matches in PHP so database collations cannot change scan results.
+        $matches = [];
+        foreach ($product->assets()->where(fn ($q) => $q->where('barcode', $code)->orWhere('asset_number', $code)->orWhere('serial_number', $code))
+            ->cursor() as $asset) {
+            if (in_array($code, [$asset->barcode, $asset->asset_number, $asset->serial_number], true)) {
+                $matches[] = $asset;
+                if (count($matches) === 2) {
+                    return response()->json(['message' => 'This code matches multiple assets for this product. Use a unique barcode or asset number.'], 409);
+                }
+            }
+        }
+        $asset = $matches[0] ?? null;
+        if (! $asset) {
+            return response()->json(['message' => 'No asset found for this product and code.'], 404);
+        }
+        if (! in_array($asset->status, [AssetStatus::Available, AssetStatus::Damaged, AssetStatus::InMaintenance], true)) {
+            return response()->json(['message' => 'This asset cannot enter maintenance in its current status.'], 422);
+        }
+
+        return response()->json(['asset' => ['id' => $asset->id, 'asset_number' => $asset->asset_number]]);
     }
 
     public function store(MaintenanceRequest $request, MaintenanceService $service): RedirectResponse

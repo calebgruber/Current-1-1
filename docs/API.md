@@ -439,6 +439,7 @@ Scan outcomes are always returned with HTTP `200`, so the scanner UI handles the
 |---|---|---|---|
 | GET | `/maintenance` | `maintenance.index` | `maintenance.records.view` → `Maintenance/Index` (queue; filters status/priority/due) |
 | GET | `/maintenance/create` · POST `/maintenance` | `maintenance.create` · `maintenance.store` | `maintenance.records.create` |
+| POST | `/maintenance/asset-lookup` | `maintenance.asset-lookup` | `maintenance.records.create` |
 | GET | `/maintenance/{record}` | `maintenance.show` | `maintenance.records.view` → `Maintenance/Show` |
 | GET | `/maintenance/{record}/edit` · PUT `/maintenance/{record}` | `maintenance.edit` · `maintenance.update` | `maintenance.records.edit` |
 | POST | `/maintenance/{record}/status` | `maintenance.status` | `maintenance.records.edit`; `maintenance.records.approve` to close or write off |
@@ -446,6 +447,8 @@ Scan outcomes are always returned with HTTP `200`, so the scanner UI handles the
 | GET | `/maintenance/export` | `maintenance.export` | `maintenance.records.export` |
 
 Body: `{asset_id? | product_id + quantity, type, priority, title, description, status, due_at, assigned_to, job_id?, cost, resolution?, custom_fields}`. The `reference` (`MR-00001`) is generated.
+
+Asset lookup accepts `{product_id, code}` and returns `{asset: {id, asset_number}}` for an exact, case-sensitive barcode, serial number or asset number within the selected serialized product. It returns 404 for no match, 409 for multiple matches, and 422 for invalid input or an asset that cannot enter maintenance. Deleted products and assets are excluded. Saving still validates the current asset state and product relationship.
 
 ## Rules
 

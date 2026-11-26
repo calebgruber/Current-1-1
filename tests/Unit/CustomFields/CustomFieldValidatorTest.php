@@ -105,4 +105,36 @@ class CustomFieldValidatorTest extends TestCase
         [$errors] = $validator->validate($def, ['amount' => '1']);
         $this->assertArrayHasKey('amount', $errors);
     }
+
+    public function test_float_limits_are_converted_without_php_precision_rounding(): void
+    {
+        $precision = ini_get('precision');
+        $serializePrecision = ini_get('serialize_precision');
+        ini_set('precision', '4');
+        ini_set('serialize_precision', '3');
+
+        try {
+            $validator = new CustomFieldValidator;
+            $def = [['key' => 'amount', 'label' => 'Amount', 'type' => 'number', 'validation' => ['max' => 1234567890123.45]]];
+            [$errors] = $validator->validate($def, ['amount' => '1234567890123.4501']);
+            $this->assertArrayHasKey('amount', $errors);
+            [$errors] = $validator->validate($def, ['amount' => '1234567890123.45']);
+            $this->assertSame([], $errors);
+            $def[0]['validation'] = ['min' => 1234567890123.45];
+            [$errors] = $validator->validate($def, ['amount' => '1234567890123.4499']);
+            $this->assertArrayHasKey('amount', $errors);
+            [$errors, $clean] = $validator->validate($def, ['amount' => 1234567890123.45]);
+            $this->assertSame([], $errors);
+            $this->assertSame('1234567890123.45', $clean['amount']);
+            $def[0]['validation'] = ['min' => 0.1, 'max' => 0.1];
+            [$errors] = $validator->validate($def, ['amount' => '0.1']);
+            $this->assertSame([], $errors);
+            $def[0]['validation'] = ['max' => INF];
+            [$errors] = $validator->validate($def, ['amount' => '0.1']);
+            $this->assertArrayHasKey('amount', $errors);
+        } finally {
+            ini_set('precision', $precision);
+            ini_set('serialize_precision', $serializePrecision);
+        }
+    }
 }
