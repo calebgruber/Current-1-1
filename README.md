@@ -2,9 +2,11 @@
 
 **Equipment, production and rental management for performing arts.** StageTrack is a modern 1:1 workflow replacement for Current RMS. It is built for educational theatre programs, performing arts centers, university production departments, electrics and audio shops, event spaces and rental operations, and it can be self-hosted on ordinary **cPanel shared hosting** with no Docker and no command line.
 
+> **Development status:** StageTrack is incomplete and is not ready for production. The features and deployment workflow below describe the intended product; module screens, administration, security integrations and end-to-end workflows still require implementation and verification.
+
 > Built with Laravel 12 · Vue 3 + TypeScript · Inertia.js · Tailwind CSS v4 · MySQL 8
 
-## Feature highlights
+## Planned feature highlights
 
 - **Inventory & assets.** Serialized and bulk products, categories, manufacturers, tags, a locations tree, accessories (required, optional, safety, consumable, auto-add), asset status history, condition reports, and barcode/QR labels.
 - **Availability you can trust.** A sweep-line peak calculation over any date window, where back-to-back bookings don't conflict. Results are broken down into reserved, checked out, tentative, maintenance, damaged and lost, and **every number links to the jobs, reservations and assets behind it**. Overbooking is blocked unless an authorized user overrides it.
