@@ -23,14 +23,14 @@ gantt
 
 ## Phase 0 — Foundation
 
-- Laravel 12 + Inertia 2 + Vue 3 + TypeScript + Tailwind v4 scaffold; Ziggy.
+- Laravel 12 + Livewire 4 + TallStackUI 4 + Blade + Tailwind v4 interface.
 - Domain module structure + `ModuleServiceProvider` (route & command auto-registration).
 - Core migrations (all tables in [DATABASE.md](DATABASE.md)); morph map.
 - Settings repository with defaults & cache.
 - Permission catalog + sync command; `Gate::before`; super admin.
 - Authentication: username/email login, lockout, password policy, TOTP + recovery codes, passkeys, sessions list/revoke, password reset, `EnforceSecurityPolicy`.
 - `Auditable`, `Searchable`, `HasCustomFields`, `HasNotesAndAttachments` traits.
-- App shell: collapsible sidebar, top bar, ⌘K palette stub, dark mode, toasts, keyboard shortcut manager.
+- App shell: responsive module tabs, top bar, dark mode, and toasts.
 - Setup wizard + `EnsureApplicationInstalled`.
 
 **Exit:** a fresh install via `/setup`, super admin signs in with 2FA/passkey, creates a role and a user.

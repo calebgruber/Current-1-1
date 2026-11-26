@@ -1,22 +1,22 @@
 # HTTP API Specification
 
-StageTrack is an Inertia.js monolith ([ADR-001](DECISIONS.md#adr-001--laravel--inertiajs-monolith)), so it has no separate public REST API in v1.0. This document lists every HTTP endpoint. Endpoints fall into two kinds:
+The current interface is a Laravel monolith using Blade, Livewire, and TallStackUI. This file is an earlier API design document, not a verified inventory of the current HTTP routes; use `php artisan route:list` and the module route files for integration.
 
-- **Page endpoints** return an Inertia response, which is HTML on the first load and JSON `{component, props, url, version}` when the request has an `X-Inertia` header. Each one is listed with its component (`{Module}/{Page}`) and its main props.
-- **JSON endpoints** are used by interactive widgets: search, scan, availability, preview, report run, conflicts, validation and passkeys. They are documented with request and response examples.
+- **Page endpoints** render server-side Blade views and use normal HTML form submissions/redirects.
+- **JSON endpoints** serve lookups and interactive operations such as scanning, previews, reports and passkeys.
 
-> **Implementation status.** This is a design specification, not an inventory of implemented endpoints. Module routes live in `app/Domain/{Module}/routes.php` and are loaded by `ModuleServiceProvider` inside the `web` middleware group. Check those files and `php artisan route:list` before integrating. Known differences include:
+> **Implementation status.** Route examples below remain an unverified design specification. Module routes live in `app/Domain/{Module}/routes.php` and are loaded by `ModuleServiceProvider` inside the `web` middleware group. Check those files and `php artisan route:list` before integrating. Known differences include:
 >
 > - Setup requirements uses `POST`, not `GET`; `/setup/database/test` and `/setup/application` exist, while `/setup/organization` does not.
 > - The search page route is named `search.index`. Warehouse station and display paths differ from the design below, and scan-event undo routes are not implemented.
-> - Custom-field input endpoints are `/custom-fields/lookup`, `/custom-fields/upload` and `/custom-fields/download`. Definition management, settings, administration and the HTTP cron endpoint are not implemented.
+> - Custom-field input endpoints are `/custom-fields/lookup`, `/custom-fields/upload` and `/custom-fields/download`; the settings UI is available under `/settings/general`. Route details in this design file are not authoritative.
 >
 > Other differences may remain; request and response examples below have not been comprehensively verified against the implementation.
 
 ## Contents
 
 - [Conventions](#conventions)
-- [Shared Inertia props](#shared-inertia-props)
+- [Page rendering](#page-rendering)
 - [System & setup](#system--setup)
 - [Authentication & account](#authentication--account)
 - [Passkeys (laravel/passkeys)](#passkeys-laravelpasskeys)
@@ -31,34 +31,19 @@ StageTrack is an Inertia.js monolith ([ADR-001](DECISIONS.md#adr-001--laravel--i
 
 | Topic | Convention |
 |---|---|
-| Middleware | Every module route runs in the `web` group: `EnsureApplicationInstalled` → session/CSRF → `HandleInertiaRequests` → `EnforceSecurityPolicy`. All routes except guest/setup/cron also use `auth`. |
-| Authentication | Session cookie. Every non-GET request needs the CSRF token (`X-XSRF-TOKEN` header, which axios and Inertia send automatically). |
+| Middleware | Module routes run in the `web` group with session/CSRF and `EnforceSecurityPolicy`. All routes except guest/setup/cron also use `auth`. |
+| Authentication | Session cookie. Every non-GET request needs Laravel's CSRF token; Blade forms include it with `@csrf`. |
 | Authorization | The **Permission** column lists the catalog key checked with `can:` middleware or `$this->authorize()`. Super admins pass every check. A failed check returns `403`. |
-| Route names | `{module}.{resource}.{action}` in Laravel style (`index`, `create`, `store`, `show`, `edit`, `update`, `destroy`). Ziggy exposes them to Vue as `route('jobs.show', id)`. |
+| Route names | `{module}.{resource}.{action}` in Laravel style (`index`, `create`, `store`, `show`, `edit`, `update`, `destroy`). Blade uses Laravel's `route()` helper. |
 | Mutations | Form submissions redirect (`303`) back or to the resource and set a flash message (`flash.success` / `flash.error` / `flash.warning`). JSON endpoints return `200`/`201`/`422`. |
-| Validation | `422`. Inertia receives errors as the `errors` prop; JSON endpoints use Laravel's `{message, errors:{field:[...]}}`. |
+| Validation | HTML forms redirect back with session errors; JSON endpoints use Laravel validation responses. |
 | Pagination | List pages take `?page=`, `?per_page=` (≤100), `?search=`, `?sort=field` / `?sort=-field` and `?filter[key]=value`. They return a Laravel paginator `{data, links, meta}`. |
 | Dates | ISO 8601 strings in the organization's timezone (`general.timezone`). |
 | Custom fields | Forms accept `custom_fields: {key: value}`. Pages receive `custom_field_definitions` and `custom_fields`. |
 
-## Shared Inertia props
+## Page rendering
 
-`HandleInertiaRequests::share()` adds these props to every page:
-
-```json
-{
-  "app": { "name": "StageTrack Enterprise", "version": "1.0.0", "organization": "Riverside University Theatre", "currency": "USD" },
-  "auth": {
-    "user": { "id": 1, "name": "Alex Rivera", "email": "alex@example.edu", "is_super_admin": false,
-              "two_factor_enabled": true, "preferences": { "theme": "system", "sidebar_collapsed": false } },
-    "permissions": ["inventory.products.view", "jobs.jobs.view", "jobs.jobs.edit"]
-  },
-  "flash": { "success": null, "error": null, "warning": null },
-  "ziggy": { "url": "https://stagetrack.example.edu", "location": "https://stagetrack.example.edu/jobs/12" }
-}
-```
-
-For super admins `auth.permissions` is `["*"]`. Guests get `auth.user: null`.
+Authenticated pages use Blade layouts and TallStackUI components. Permission-aware navigation and controls use Laravel's `@can` directives; the route and controller remain authoritative for access checks. Livewire powers interactive pages/widgets where server-side state is useful.
 
 ## System & setup
 
@@ -683,7 +668,7 @@ Migration run response:
 | 403 | Missing permission or failed policy | `{ "message": "This action is unauthorized." }` |
 | 404 | Not found, `/setup` after install, bad cron token | `{ "message": "Not Found" }` |
 | 409 | Stale update (`updated_at` mismatch on job/template edits) | `{ "message": "This record was changed by someone else." }` |
-| 419 | CSRF token expired | Inertia reloads the page |
+| 419 | CSRF token expired | Refresh the page and submit again |
 | 422 | Validation, illegal stage transition, blocked overbooking | `{ "message": "…", "errors": { "field": ["…"] } }` |
 | 423 | Account locked out | `{ "message": "Too many attempts. Try again in 15 minutes." }` |
 | 429 | Throttled (login, 2FA, password reset) | `{ "message": "Too Many Attempts." }` |

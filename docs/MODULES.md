@@ -19,23 +19,21 @@ app/Domain/{Module}/
 ├── DTOs/               # immutable value objects passed between services / to the UI
 ├── Enums/              # backed enums (statuses, types, stages)
 ├── Http/
-│   ├── Controllers/    # thin: authorize → validate → call service → Inertia/JSON
+│   ├── Controllers/    # thin: authorize → validate → call service → Blade/JSON
 │   └── Requests/       # FormRequests
 ├── Models/             # Eloquent models
 ├── Policies/           # record-level authorization (after Gate::before)
 ├── Services/           # domain logic; pure cores + I/O wrappers
 └── routes.php          # auto-loaded inside the `web` middleware group
 
-resources/js/
-├── Components/         # shared UI (buttons, tables, drawers, palette, scanner input…)
-├── Layouts/            # AppLayout (sidebar + topbar), GuestLayout, DisplayLayout, SetupLayout
-└── Modules/{Module}/Pages/*.vue   # Inertia page "{Module}/{Page}"
+resources/views/        # Blade pages, layouts, and TallStackUI components
+app/Livewire/            # Livewire pages and interactive widgets
 
 tests/Unit/{Module}/    # pure services (no DB)
 tests/Feature/{Module}/ # HTTP + DB
 ```
 
-Cross-cutting support lives in `app/Support` (`Concerns\Auditable`, `Concerns\Searchable`, `Concerns\HasCustomFields`, `Concerns\HasNotesAndAttachments`, `Html\HtmlSanitizer`†) and `app/Http/Middleware` (`EnsureApplicationInstalled`†, `HandleInertiaRequests`†, `EnforceSecurityPolicy`†).
+Cross-cutting support lives in `app/Support` (`Concerns\Auditable`, `Concerns\Searchable`, `Concerns\HasCustomFields`, `Concerns\HasNotesAndAttachments`, `Html\HtmlSanitizer`†) and `app/Http/Middleware` (`EnsureApplicationInstalled`†, `EnforceSecurityPolicy`†).
 
 ## Dependency graph
 
@@ -283,7 +281,7 @@ Block types (`BlockCompiler::TYPES`): heading, text, image, logo, fields, items_
 
 ### CustomFields
 
-Definitions per entity type (product, asset, job, reservation, document, contact, maintenance, location) and typed values (`value_text`, `value_number`, `value_date`, `value_json`). `CustomFieldValidator`† (pure; `validate(definitions, input, partial)`) builds/enforces rules per type (text, long_text, number, currency, date, datetime, checkbox, dropdown, multi_select, file, user, asset, url, relation). Shared Vue component `CustomFieldsForm`. Pages `CustomFields/Index`, `CustomFields/Form`. Permissions `settings.custom_fields.view/create/edit/delete`.
+Definitions per entity type (product, asset, job, reservation, document, contact, maintenance, location) and typed values (`value_text`, `value_number`, `value_date`, `value_json`). `CustomFieldValidator`† (pure; `validate(definitions, input, partial)`) builds/enforces rules per type (text, long_text, number, currency, date, datetime, checkbox, dropdown, multi_select, file, user, asset, url, relation). Shared Blade partials render and display custom fields. Permissions `settings.custom_fields.view/create/edit/delete`.
 
 ### Search
 

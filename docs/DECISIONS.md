@@ -1,10 +1,12 @@
 # Architecture Decision Records
 
-Short ADRs for the decisions that shape StageTrack Enterprise. Format: *Context → Decision → Consequences*. Status of all records: **Accepted**.
+Short ADRs for the decisions that shape StageTrack Enterprise. Format: *Context → Decision → Consequences*. Check each ADR's status; some original choices have been superseded.
 
 ---
 
 ## ADR-001 — Laravel + Inertia.js monolith
+
+**Status: Superseded by ADR-016.**
 
 **Context.** The product must be installable on cPanel shared hosting by non-developers, yet feel like a modern SPA (Linear/Notion-grade UX). A separate API + SPA doubles the surface area (auth, CORS, versioning, two deployables).
 
@@ -16,7 +18,7 @@ Short ADRs for the decisions that shape StageTrack Enterprise. Format: *Context 
 
 **Context.** ~15 functional areas with different owners; Laravel's default `app/Http`, `app/Models` layout scatters a feature across the tree.
 
-**Decision.** Each module owns `Models`, `Services`, `Http/Controllers`, `Http/Requests`, `Policies`, `DTOs`, `Enums`, `Console`, and a `routes.php`. `App\Providers\ModuleServiceProvider` auto-registers every `app/Domain/*/routes.php` inside the `web` middleware group and every class in `app/Domain/*/Console` as an Artisan command. Pages live in `resources/js/Modules/{Module}/Pages`, tests in `tests/{Unit,Feature}/{Module}`.
+**Decision.** Each module owns `Models`, `Services`, `Http/Controllers`, `Http/Requests`, `Policies`, `DTOs`, `Enums`, `Console`, and a `routes.php`. `App\Providers\ModuleServiceProvider` auto-registers every `app/Domain/*/routes.php` inside the `web` middleware group and every class in `app/Domain/*/Console` as an Artisan command. Pages live in `resources/views`, tests in `tests/{Unit,Feature}/{Module}`.
 
 **Consequences.** Adding a module needs no provider edits. Cross-module calls go through services (not controllers). `app/Models/User.php` stays at the Laravel default location for framework compatibility. Route caching (`route:cache`) still works because module routes are plain route files.
 
@@ -123,3 +125,11 @@ Short ADRs for the decisions that shape StageTrack Enterprise. Format: *Context 
 **Decision.** `job_items.required_quantity` and `spare_quantity` are separate; `pull_quantity` = sum. Both are held in reservations; rules choose a `basis` (pull or required); checkout completeness uses required only.
 
 **Consequences.** Every surface (pull sheets, availability, reports, warehouse) carries three numbers consistently.
+
+## ADR-016 — Blade, Livewire, and TallStackUI interface
+
+**Context.** Vue/Inertia pages duplicated the Laravel application boundary and the navigation made workflows difficult to scan. The requested UI direction is a consistent TallStackUI system with discoverable modules and configurable terminology.
+
+**Decision.** Use Laravel Blade with TallStackUI components and Livewire for interactive server-driven views. Keep named Laravel routes and JSON endpoints for operations that need them. The shared authenticated shell uses permission-aware, color-coded module tabs instead of a sidebar; deployment settings control organization defaults, workflow switches, and module labels.
+
+**Consequences.** There is one server-rendered UI and authorization boundary. Blade templates remain the source of truth for page markup; browser JavaScript is limited to focused interactions such as passkey flows and inline widgets.

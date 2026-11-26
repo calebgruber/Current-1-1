@@ -57,7 +57,7 @@ Notation: **PK** primary key, **UQ** unique, **IX** index, **FK** foreign key (�
 | last_login_at / last_login_ip | timestamp? / varchar(45)? | |
 | failed_login_attempts | smallint unsigned default 0 | lockout counter |
 | locked_until | timestamp? | lockout expiry |
-| preferences | json? | theme, sidebar state, etc. |
+| preferences | json? | theme and user interface preferences |
 | remember_token | varchar(100)? | |
 | created_at, updated_at, deleted_at | | soft deletes |
 
@@ -458,7 +458,7 @@ UQ `(entity_type, entity_id)`. **MySQL only**: `FULLTEXT search_index_fulltext (
 Guidelines:
 
 1. **Batch availability**: the Availability Explorer and job conflict checks load buckets and holds for *all requested products in one query per source* (`whereIn('product_id', …)`) and feed the pure `AvailabilityCalculator` in memory — no N+1.
-2. **Eager loading** is mandatory on list pages; Inertia props are paginated.
+2. **Eager loading** is mandatory on list pages; server-rendered lists are paginated.
 3. **Append-only logs** (`scan_events`, `audit_logs`) are never updated; they can be pruned by date.
 4. Report queries are built only from whitelisted columns via the query builder (parameter bindings) and capped by `limit`.
 5. The settings table is read once per request from cache.

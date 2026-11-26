@@ -4,7 +4,7 @@
 |---|---|
 | Product | StageTrack Enterprise |
 | Version | 1.0 (target release) |
-| Stack | Laravel 12 · PHP 8.3 · Vue 3 + TypeScript · Inertia.js 2 · Tailwind CSS v4 · MySQL 8 |
+| Stack | Laravel 12 · PHP 8.3 · Livewire 4 · TallStackUI 4 · Blade · Tailwind CSS v4 · MySQL 8 |
 | Status | Approved for implementation |
 
 Related: [MODULES.md](MODULES.md) · [DATABASE.md](DATABASE.md) · [API.md](API.md) · [PERMISSIONS.md](PERMISSIONS.md) · [DECISIONS.md](DECISIONS.md)
@@ -282,13 +282,13 @@ Priority: **M** = must (v1.0), **S** = should (v1.0 if time permits), **C** = co
 | FR-SET-001 | Organization: name, logo, address, currency, timezone, date format, default job duration. | M |
 | FR-SET-002 | Security policies (`security.*`). | M |
 | FR-SET-003 | Warehouse (`warehouse.*`) and reservations (`reservations.*`) behaviour toggles. | M |
-| FR-SET-004 | Per-user preferences: theme (system/light/dark), sidebar collapsed, sounds, default warehouse station. | M |
+| FR-SET-004 | Per-user preferences: theme (system/light/dark), sounds, default warehouse station. | M |
 
 ### 5.16 UX (UX)
 
 | ID | Requirement | Pri |
 |---|---|---|
-| FR-UX-001 | Collapsible sidebar grouped by module, hidden items the user lacks permission for. | M |
+| FR-UX-001 | Responsive, color-coded module tabs with icons; hide modules the user lacks permission for. | M |
 | FR-UX-002 | Keyboard shortcuts: `g i` inventory, `g j` jobs, `g w` warehouse, `g a` availability, `n` new (context), `/` search, `?` shortcut help, `⌘K` palette. Disabled while typing in inputs. | M |
 | FR-UX-003 | Dark mode (system/light/dark) persisted per user. | M |
 | FR-UX-004 | Responsive from 360 px phones to 4K displays. | M |
@@ -304,7 +304,7 @@ Priority: **M** = must (v1.0), **S** = should (v1.0 if time permits), **C** = co
 | NFR-PERF-002 | Availability for a job with 200 lines (batched) | p95 < 800 ms |
 | NFR-PERF-003 | Global search (FULLTEXT) | p95 < 150 ms |
 | NFR-PERF-004 | Scan processing round-trip on LAN | p95 < 250 ms (server < 100 ms) |
-| NFR-PERF-005 | Inertia page loads (list pages, 50 rows) | p95 < 500 ms TTFB on shared hosting |
+| NFR-PERF-005 | Server-rendered page loads (list pages, 50 rows) | p95 < 500 ms TTFB on shared hosting |
 | NFR-PERF-006 | Template live preview | < 500 ms for 300-line jobs |
 | NFR-PERF-007 | Report run (100k source rows, aggregated) | < 3 s; UI shows spinner and is cancellable |
 | NFR-PERF-008 | Frontend initial JS (gzip) | < 300 kB; module pages code-split |
@@ -345,7 +345,7 @@ Priority: **M** = must (v1.0), **S** = should (v1.0 if time permits), **C** = co
 ### 6.6 Maintainability & quality
 
 - NFR-MNT-001 Domain logic in pure services (AvailabilityCalculator, ScanProcessor, RuleEvaluator, TemplateRenderer, CustomFieldValidator, Totp…) with unit tests; feature tests per module.
-- NFR-MNT-002 Code style enforced by Laravel Pint; TypeScript strict mode; `vue-tsc` type checks.
+- NFR-MNT-002 Code style enforced by Laravel Pint; TypeScript strict mode for browser enhancements; PHP feature tests cover server-rendered pages.
 - NFR-MNT-003 ≥ 80 % line coverage on `app/Domain/*/Services`.
 
 ### 6.7 Compatibility
@@ -418,4 +418,4 @@ The v1.0 release is accepted when all of the following pass:
 13. **Administration**: create backup → modify data → restore → data matches the backup; pending migration shows in Migrations and runs from the UI; uploading a zip containing `../evil.php` is rejected.
 14. **Search**: typing an exact asset barcode in ⌘K returns that asset first in < 150 ms.
 15. **Accessibility**: axe-core reports no serious/critical violations on dashboard, jobs, job detail, availability, warehouse scan, and template designer pages; all flows completable by keyboard.
-16. **Quality**: `php artisan test` and `npm run build` (including `vue-tsc`) succeed in CI.
+16. **Quality**: `php artisan test`, `npm run typecheck`, and `npm run build` succeed in CI.

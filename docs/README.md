@@ -24,7 +24,7 @@ Planning and architecture documentation for StageTrack Enterprise. It is a 1:1 w
 ```mermaid
 graph TB
     subgraph Browser
-        V[Vue 3 + TypeScript pages<br/>Inertia.js · Tailwind v4]
+        V[Blade + TallStackUI<br/>Livewire · Tailwind v4]
         SC[USB / Bluetooth scanner<br/>keyboard wedge]
         PK[WebAuthn authenticator]
     end
@@ -35,7 +35,7 @@ graph TB
         FS[(storage/app<br/>uploads · PDFs · backups)]
     end
     DB[(MySQL 8<br/>utf8mb4 · FULLTEXT)]
-    V <-->|Inertia / JSON| L
+    V <-->|HTML / Livewire / JSON| L
     SC --> V
     PK --> V
     L --> DB
@@ -47,6 +47,6 @@ graph TB
 ## Conventions used in these docs
 
 - Permission keys look like `module.resource.action` (see [PERMISSIONS.md](PERMISSIONS.md)).
-- Inertia page names look like `{Module}/{Page}` and map to `resources/js/Modules/{Module}/Pages/{Page}.vue`.
+- Module pages are Blade views under `resources/views`; interactive widgets use Livewire or small Alpine.js behaviors alongside TallStackUI components.
 - Classes marked † in MODULES.md exist in the code. Unmarked classes are part of the agreed design. If code and docs disagree, the code is correct.
 - Diagrams are written in Mermaid and render on GitHub.

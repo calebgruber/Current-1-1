@@ -25,6 +25,14 @@ class SettingsRepository
         'general.default_job_duration_days' => 3,
         'general.tax_rate' => 0,
         'general.tax_label' => 'Tax',
+        'ui.label_inventory' => 'Inventory',
+        'ui.label_jobs' => 'Jobs',
+        'ui.label_maintenance' => 'Maintenance',
+        'ui.label_warehouse' => 'Warehouse',
+        'ui.label_reservations' => 'Reservations',
+        'ui.label_contacts' => 'Contacts',
+        'ui.label_documents' => 'Documents',
+        'ui.label_reports' => 'Reports',
         'documents.terms' => null,
         'security.password_min_length' => 12,
         'security.password_require_mixed' => true,
@@ -54,7 +62,9 @@ class SettingsRepository
                         return [];
                     }
 
-                    return Setting::query()->pluck('value', 'key')->all();
+                    return Setting::query()->get(['key', 'value'])
+                        ->mapWithKeys(fn (Setting $setting) => [$setting->key => $setting->value])
+                        ->all();
                 });
             } catch (\Throwable) {
                 $stored = [];

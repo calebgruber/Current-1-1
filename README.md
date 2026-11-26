@@ -2,9 +2,9 @@
 
 **Equipment, production and rental management for performing arts.** StageTrack is a modern 1:1 workflow replacement for Current RMS. It is built for educational theatre programs, performing arts centers, university production departments, electrics and audio shops, event spaces and rental operations, and it can be self-hosted on ordinary **cPanel shared hosting** with no Docker and no command line.
 
-> **Development status:** StageTrack is incomplete and is not ready for production. The features and deployment workflow below describe the intended product; module screens, administration, security integrations and end-to-end workflows still require implementation and verification.
+> **Development status:** The interface has been migrated to Blade, Livewire, and TallStackUI, but the migration still needs dependency installation and full runtime verification before production use.
 
-> Built with Laravel 12 · Vue 3 + TypeScript · Inertia.js · Tailwind CSS v4 · MySQL 8
+> Built with Laravel 12 · Livewire 4 · TallStackUI 4 · Blade · Tailwind CSS v4 · MySQL 8
 
 ## Planned feature highlights
 
@@ -86,7 +86,7 @@ app/Support/             shared traits (Auditable, Searchable, HasCustomFields) 
 config/permissions.php   permission catalog
 config/stagetrack.php    app version, backups, updates, cron token, search
 database/migrations/     schema
-resources/js/            Vue 3 + TS: Modules/{Module}/Pages, Components, Layouts
+resources/views/         Blade pages and shared TallStackUI layouts
 tests/Unit|Feature/{Module}
 docs/                    planning & architecture documentation
 ```

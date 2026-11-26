@@ -10,7 +10,7 @@ flowchart LR
     R --- RU[(role_user)]
     U[(users)] --- RU
     U -- "is_super_admin = 1" --> BYPASS{{Bypass all checks}}
-    REQ[Controller / Policy / Vue] -- "Gate::allows('jobs.stages.approve')" --> GB[Gate::before]
+    REQ[Controller / Policy / Blade] -- "Gate::allows('jobs.stages.approve')" --> GB[Gate::before]
     GB --> BYPASS
     GB -- "3-segment ability" --> UK["User::permissionKeys()"]
 ```
@@ -295,7 +295,7 @@ public function authorize(): bool { return $this->user()->can('inventory.product
 
 ### Frontend
 
-`HandleInertiaRequests` shares `auth.permissions` with every page: `['*']` for super admins, otherwise the flat list of keys. The Vue composable `can('jobs.jobs.create')` hides buttons, menu items and sidebar sections the user cannot use. **The frontend check is cosmetic** — the server always re-authorizes.
+Blade uses Laravel's `@can` directives to hide actions and module tabs the user cannot use. **The interface check is cosmetic** — routes and mutations always re-authorize on the server.
 
 ## 4. Super administrator
 
