@@ -20,7 +20,7 @@
 
   Job update requests treat `custom_fields` as a partial map: omitted values are preserved, while the combined submitted and existing values must satisfy current field definitions. Required fields must be populated, including newly added fields; optional fields can be cleared with `null`. Numeric and currency field values are exchanged as decimal strings to preserve precision. SQLite's numeric storage and SQL aggregates can still round large or high-precision values; previously rounded values cannot be recovered.
 
-  Rule selectors compare numeric product custom fields using their compact decimal representation (for example, `1.0000` as `1`); text fields retain exact, case-insensitive text matching.
+  Numeric rule selectors compare decimal values exactly for equality (for example, `1.0000` equals `1`); contains selectors retain compact text matching, and text fields retain case-insensitive text matching. Configure high-precision numeric minimum and maximum bounds as strings; JSON numeric bounds may already have lost precision.
 - **Security.** Sign in with username or email; TOTP 2FA with recovery codes; passkeys (Windows Hello, Touch ID, Face ID, security keys); session management; configurable password, lockout and 2FA policies; and a full audit log.
 - **Roles you define.** About 130 granular capabilities. No roles are hard-coded.
 - **Web administration.** Setup wizard, migrations (run, review, roll back), backups and restore, logs, health, storage, cache and one-click updates, all from the browser.

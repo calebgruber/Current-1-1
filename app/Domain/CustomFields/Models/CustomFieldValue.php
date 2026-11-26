@@ -13,7 +13,7 @@ class CustomFieldValue extends Model
 
     protected function casts(): array
     {
-        return ['value_json' => 'array', 'value_date' => 'datetime', 'value_number' => 'float'];
+        return ['value_json' => 'array', 'value_date' => 'datetime', 'value_number' => 'decimal:4'];
     }
 
     public function definition(): BelongsTo

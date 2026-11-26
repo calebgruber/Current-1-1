@@ -3,6 +3,7 @@
 namespace App\Domain\Rules\Services;
 
 use App\Domain\Rules\DTOs\RuleFinding;
+use App\Support\DecimalComparison;
 
 /**
  * Pure, data-driven validation of equipment packages.
@@ -267,9 +268,17 @@ final class RuleEvaluator
     {
         $key = (string) ($selector['field'] ?? '');
         $actual = $line['custom'][$key] ?? null;
-        if (in_array($line['custom_types'][$key] ?? null, ['number', 'currency'], true)
-            && is_string($actual) && preg_match('/^[+-]?\d+\.\d+$/D', $actual)) {
-            $actual = rtrim(rtrim($actual, '0'), '.');
+        if (in_array($line['custom_types'][$key] ?? null, ['number', 'currency'], true) && (is_string($actual) || is_int($actual) || is_float($actual))) {
+            if (($selector['operator'] ?? 'is') === 'is') {
+                foreach ($values as $value) {
+                    if (DecimalComparison::compare((string) $actual, $value) === 0) {
+                        return true;
+                    }
+                }
+            }
+            if (is_string($actual) && preg_match('/^[+-]?\d+\.\d+$/D', $actual)) {
+                $actual = rtrim(rtrim($actual, '0'), '.');
+            }
         }
 
         return $this->textMatches($actual, $values, $selector['operator'] ?? 'is');

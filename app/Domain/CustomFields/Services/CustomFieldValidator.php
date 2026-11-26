@@ -2,6 +2,7 @@
 
 namespace App\Domain\CustomFields\Services;
 
+use App\Support\DecimalComparison;
 use DateTimeImmutable;
 
 /**
@@ -91,11 +92,22 @@ final class CustomFieldValidator
                 if ($n === null) {
                     return ["{$label} must fit within 14 integer digits and 4 decimal places.", null];
                 }
-                if (isset($rules['min']) && $n < $rules['min']) {
-                    return ["{$label} must be at least {$rules['min']}.", null];
-                }
-                if (isset($rules['max']) && $n > $rules['max']) {
-                    return ["{$label} may not be greater than {$rules['max']}.", null];
+                foreach (['min', 'max'] as $bound) {
+                    if (! isset($rules[$bound])) {
+                        continue;
+                    }
+                    $limit = $rules[$bound];
+                    $comparison = is_string($limit) || is_int($limit) || is_float($limit)
+                        ? DecimalComparison::compare($n, (string) $limit) : null;
+                    if ($comparison === null) {
+                        return ["{$label} has an invalid {$bound} limit.", null];
+                    }
+                    if ($bound === 'min' && $comparison < 0) {
+                        return ["{$label} must be at least {$limit}.", null];
+                    }
+                    if ($bound === 'max' && $comparison > 0) {
+                        return ["{$label} may not be greater than {$limit}.", null];
+                    }
                 }
 
                 return [null, $n];

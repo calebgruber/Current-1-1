@@ -10,6 +10,18 @@ use PHPUnit\Framework\TestCase;
 
 class CustomFieldValidatorTest extends TestCase
 {
+    public function test_close_decimal_changes_are_dirty_without_float_rounding(): void
+    {
+        $record = new CustomFieldValue;
+        $record->setRawAttributes(['value_number' => '99999999999999.9998'], true);
+        $record->fill(CustomFieldValue::columnsFor(CustomFieldType::Number, '99999999999999.9999'));
+        $this->assertTrue($record->isDirty('value_number'));
+        $this->assertSame('99999999999999.9999', $record->getDirty()['value_number']);
+        $record->setRawAttributes(['value_number' => '1.0000'], true);
+        $record->fill(['value_number' => '1']);
+        $this->assertFalse($record->isDirty('value_number'));
+    }
+
     public function test_decimal_values_are_read_without_float_conversion(): void
     {
         $record = new CustomFieldValue;
@@ -65,6 +77,32 @@ class CustomFieldValidatorTest extends TestCase
         [$errors] = $validator->validate($definition, ['amount' => '99999999999999.9999']);
         $this->assertArrayHasKey('amount', $errors);
         [$errors] = $validator->validate($definition, ['amount' => '0.00001']);
+        $this->assertArrayHasKey('amount', $errors);
+    }
+
+    public function test_numeric_limits_are_compared_exactly(): void
+    {
+        $validator = new CustomFieldValidator;
+        $def = [['key' => 'amount', 'label' => 'Amount', 'type' => 'number', 'validation' => [
+            'min' => '99999999999999.9997', 'max' => '99999999999999.9998',
+        ]]];
+        [$errors] = $validator->validate($def, ['amount' => '99999999999999.9999']);
+        $this->assertArrayHasKey('amount', $errors);
+        [$errors] = $validator->validate($def, ['amount' => '99999999999999.9996']);
+        $this->assertArrayHasKey('amount', $errors);
+        [$errors] = $validator->validate($def, ['amount' => '99999999999999.9998']);
+        $this->assertSame([], $errors);
+
+        $def[0]['validation'] = ['min' => '-99999999999999.9998', 'max' => '-99999999999999.9997'];
+        [$errors] = $validator->validate($def, ['amount' => '-99999999999999.9999']);
+        $this->assertArrayHasKey('amount', $errors);
+        [$errors] = $validator->validate($def, ['amount' => '-99999999999999.9997']);
+        $this->assertSame([], $errors);
+        $def[0]['validation'] = ['min' => '1e-4', 'max' => '1e2'];
+        [$errors] = $validator->validate($def, ['amount' => '0.0001']);
+        $this->assertSame([], $errors);
+        $def[0]['validation'] = ['max' => '1e9999999999'];
+        [$errors] = $validator->validate($def, ['amount' => '1']);
         $this->assertArrayHasKey('amount', $errors);
     }
 }

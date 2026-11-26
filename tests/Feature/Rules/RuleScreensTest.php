@@ -53,6 +53,10 @@ class RuleScreensTest extends TestCase
         $this->assertCount(1, $findings);
         $this->actingAs($this->superAdmin())->postJson('/rules/test', ['job_id' => $job->id, 'definition' => $definition])
             ->assertOk()->assertJsonCount(1, 'matched')->assertJsonCount(1, 'findings');
+        $definition['scope']['values'] = ['1.0000'];
+        $this->postJson('/rules/test', ['job_id' => $job->id, 'definition' => $definition])
+            ->assertOk()->assertJsonCount(1, 'matched');
+        $definition['scope']['values'] = ['1'];
         $definition['scope']['field'] = 'code';
         $this->postJson('/rules/test', ['job_id' => $job->id, 'definition' => $definition])
             ->assertOk()->assertJsonCount(0, 'matched');

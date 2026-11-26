@@ -55,7 +55,10 @@ class RuleEvaluatorSelectorsTest extends TestCase
         $this->assertCount(1, $evaluator->matching([$numeric], $selector('cost', '0.5', 'contains')));
         $this->assertCount(1, $evaluator->matching([$numeric], $selector('precise', '99999999999999.9999')));
         $this->assertCount(0, $evaluator->matching([$numeric], $selector('precise', '100000000000000')));
-        $this->assertCount(0, $evaluator->matching([$numeric], $selector('watts', '1.0000')));
+        $this->assertCount(1, $evaluator->matching([$numeric], $selector('watts', '1.0000')));
+        $this->assertCount(1, $evaluator->matching([$numeric], $selector('watts', '1e0')));
+        $this->assertCount(0, $evaluator->matching([$numeric], $selector('watts', '1.0001')));
+        $this->assertCount(0, $evaluator->matching([$numeric], $selector('watts', '1.0000', 'contains')));
         $this->assertCount(0, $evaluator->matching([$numeric], $selector('code', '1')));
         $this->assertCount(1, $evaluator->matching([$numeric], $selector('code', '1.0000')));
     }
