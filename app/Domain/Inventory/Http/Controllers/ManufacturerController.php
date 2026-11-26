@@ -8,13 +8,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 /** Manufacturers are reference data managed with the category permissions. */
 class ManufacturerController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('inventory.categories.view');
         $search = trim((string) ($request->validate(['search' => ['nullable', 'string', 'max:120']])['search'] ?? ''));
@@ -32,7 +31,7 @@ class ManufacturerController extends Controller
                 'products_count' => $m->products_count,
             ]);
 
-        return Inertia::render('Inventory/Manufacturers/Index', [
+        return view('inventory.manufacturers.index', [
             'manufacturers' => $manufacturers,
             'filters' => ['search' => $search],
         ]);

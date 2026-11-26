@@ -5,7 +5,6 @@ namespace Tests\Feature\CustomFields;
 use App\Domain\CustomFields\Models\CustomFieldDefinition;
 use App\Domain\Jobs\Models\ProductionJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class JobCustomFieldsTest extends TestCase
@@ -18,17 +17,20 @@ class JobCustomFieldsTest extends TestCase
         CustomFieldDefinition::create(['entity_type' => 'job', 'key' => 'kind', 'label' => 'Kind', 'type' => 'dropdown', 'options' => ['Tour', 'Local']]);
         $user = $this->userWithPermissions(['jobs.jobs.view', 'jobs.jobs.create', 'jobs.jobs.edit']);
 
-        $this->actingAs($user)->get('/jobs/create')->assertOk()->assertInertia(fn (Assert $p) => $p
-            ->component('Jobs/Form')->where('customFieldSchema.0.key', 'reference')->where('customFields', []));
+        $this->actingAs($user)->get('/jobs/create')->assertOk()->assertViewIs('jobs.form')
+            ->assertViewHas('customFieldSchema', fn ($schema) => $schema[0]['key'] === 'reference')
+            ->assertViewHas('customFields', []);
         $this->post('/jobs', ['name' => 'Show', 'custom_fields' => ['kind' => 'Invalid']])
             ->assertSessionHasErrors(['custom_fields.reference', 'custom_fields.kind']);
         $this->post('/jobs', ['name' => 'Show', 'custom_fields' => ['reference' => 'R1', 'kind' => 'Tour']])->assertSessionHasNoErrors();
         $job = ProductionJob::query()->where('name', 'Show')->firstOrFail();
 
-        $this->get("/jobs/{$job->id}")->assertOk()->assertInertia(fn (Assert $p) => $p
-            ->component('Jobs/Show')->where('customFieldSchema.0.label', 'Reference')->where('customFields.reference', 'R1')->where('customFields.kind', 'Tour'));
-        $this->get("/jobs/{$job->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p
-            ->component('Jobs/Form')->where('customFields.reference', 'R1')->where('customFields.kind', 'Tour'));
+        $this->get("/jobs/{$job->id}")->assertOk()->assertViewIs('jobs.show')
+            ->assertViewHas('customFieldSchema', fn ($schema) => $schema[0]['label'] === 'Reference')
+            ->assertViewHas('customFields', fn ($fields) => $fields['reference'] === 'R1' && $fields['kind'] === 'Tour')
+            ->assertSee('R1')->assertSee('Tour');
+        $this->get("/jobs/{$job->id}/edit")->assertOk()->assertViewIs('jobs.form')
+            ->assertViewHas('customFields', fn ($fields) => $fields['reference'] === 'R1' && $fields['kind'] === 'Tour');
         $this->put("/jobs/{$job->id}", ['name' => 'Show', 'custom_fields' => ['reference' => '', 'kind' => 'Local']])
             ->assertSessionHasErrors('custom_fields.reference');
         $this->assertSame('R1', $job->fresh()->customFields()['reference']);
@@ -45,7 +47,8 @@ class JobCustomFieldsTest extends TestCase
         $payload = ['key' => 'region', 'label' => 'Region', 'type' => 'dropdown', 'is_required' => false, 'options' => ['North', 'South']];
 
         $this->actingAs($this->userWithPermissions([]))->get('/settings/custom-fields')->assertForbidden();
-        $this->actingAs($viewer)->get('/settings/custom-fields')->assertOk()->assertInertia(fn (Assert $p) => $p->component('CustomFields/Index')->has('fields', 0));
+        $this->actingAs($viewer)->get('/settings/custom-fields')->assertOk()->assertViewIs('custom-fields.index')
+            ->assertViewHas('fields', fn ($fields) => $fields->isEmpty())->assertSee('Job custom fields');
         $this->post('/settings/custom-fields', $payload)->assertForbidden();
         $this->actingAs($creator)->post('/settings/custom-fields', $payload)->assertSessionHasNoErrors()->assertRedirect('/settings/custom-fields');
         $this->assertDatabaseHas('custom_field_definitions', ['entity_type' => 'job', 'key' => 'region', 'type' => 'dropdown']);
@@ -90,9 +93,11 @@ class JobCustomFieldsTest extends TestCase
         $this->actingAs($this->userWithPermissions(['jobs.jobs.create', 'jobs.jobs.edit', 'jobs.jobs.view']))
             ->post('/jobs', ['name' => 'Precision', 'custom_fields' => ['amount' => '99999999999999.9999']])->assertSessionHasNoErrors();
         $job = ProductionJob::query()->where('name', 'Precision')->firstOrFail();
-        $this->get("/jobs/{$job->id}/edit")->assertInertia(fn (Assert $p) => $p->where('customFields.amount', '99999999999999.9999'));
+        $this->get("/jobs/{$job->id}/edit")->assertViewIs('jobs.form')
+            ->assertViewHas('customFields.amount', '99999999999999.9999');
         $this->put("/jobs/{$job->id}", ['name' => 'Precision', 'custom_fields' => ['amount' => '99999999999999.9999']])->assertSessionHasNoErrors();
-        $this->get("/jobs/{$job->id}")->assertInertia(fn (Assert $p) => $p->where('customFields.amount', '99999999999999.9999'));
+        $this->get("/jobs/{$job->id}")->assertViewIs('jobs.show')
+            ->assertViewHas('customFields.amount', '99999999999999.9999');
     }
 
     public function test_editing_a_job_field_changes_only_label_and_help_text(): void
@@ -124,7 +129,8 @@ class JobCustomFieldsTest extends TestCase
         $this->assertTrue($field->is_required);
         $this->assertSame('North', $job->fresh()->customFields()['region']);
         $this->actingAs($this->userWithPermissions(['jobs.jobs.view']))->get("/jobs/{$job->id}")
-            ->assertInertia(fn (Assert $p) => $p->where('customFieldSchema.0.label', 'Area')
-                ->where('customFieldSchema.0.help_text', 'Choose an area')->where('customFields.region', 'North'));
+            ->assertViewIs('jobs.show')
+            ->assertViewHas('customFieldSchema', fn ($schema) => $schema[0]['label'] === 'Area' && $schema[0]['help_text'] === 'Choose an area')
+            ->assertViewHas('customFields.region', 'North');
     }
 }

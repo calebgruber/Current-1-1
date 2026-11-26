@@ -10,15 +10,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
 use Throwable;
 
 class SystemController extends Controller
 {
-    public function index(SystemStatus $status): Response
+    public function index(SystemStatus $status)
     {
-        return Inertia::render('Administration/System/Index', ['status' => $status->snapshot(app('migrator'))]);
+        return view('administration.system.index', ['status' => $status->snapshot(app('migrator'))]);
     }
 
     public function clearCache(Request $request): RedirectResponse

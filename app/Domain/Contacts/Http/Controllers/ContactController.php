@@ -15,8 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContactController extends Controller
@@ -30,7 +28,7 @@ class ContactController extends Controller
         private readonly ContactService $contacts,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
         Gate::authorize('contacts.contacts.view');
         $filters = $this->filters($request);
@@ -42,7 +40,7 @@ class ContactController extends Controller
             ->withQueryString();
         $values = $this->customFields->valuesForMany('contact', $contacts->getCollection()->pluck('id')->all());
 
-        return Inertia::render('Contacts/Index', [
+        return view('contacts.index', [
             'contacts' => $contacts->through(fn (Contact $c) => [
                 'id' => $c->id,
                 'type' => $c->type,
@@ -96,12 +94,12 @@ class ContactController extends Controller
         ]));
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request)
     {
         Gate::authorize('contacts.contacts.create');
         $org = $request->integer('organization') ? Contact::query()->where('type', 'organization')->find($request->integer('organization')) : null;
 
-        return Inertia::render('Contacts/Form', $this->formProps(null) + [
+        return view('contacts.form', $this->formProps(null) + [
             'defaults' => [
                 'type' => $request->query('type') === 'organization' ? 'organization' : 'person',
                 'organization' => $org ? ['value' => $org->id, 'label' => $org->name] : null,
@@ -119,7 +117,7 @@ class ContactController extends Controller
         return redirect()->route('contacts.show', $contact)->with('success', "Contact “{$contact->name}” created.");
     }
 
-    public function show(Contact $contact, HistoryPresenter $history): Response
+    public function show(Contact $contact, HistoryPresenter $history)
     {
         Gate::authorize('contacts.contacts.view');
         $contact->load('organization:id,name');
@@ -145,7 +143,7 @@ class ContactController extends Controller
         $members = $contact->members()->orderBy('name')->limit(200)->get(['id', 'name', 'email', 'phone', 'title'])
             ->map(fn (Contact $m) => $m->only(['id', 'name', 'email', 'phone', 'title']));
 
-        return Inertia::render('Contacts/Show', [
+        return view('contacts.show', [
             'contact' => $this->present($contact) + ['organization' => $contact->organization?->only(['id', 'name'])],
             'members' => $members,
             'jobs' => $jobs,
@@ -155,12 +153,12 @@ class ContactController extends Controller
         ]);
     }
 
-    public function edit(Contact $contact): Response
+    public function edit(Contact $contact)
     {
         Gate::authorize('contacts.contacts.edit');
         $contact->load('organization:id,name');
 
-        return Inertia::render('Contacts/Form', $this->formProps($contact) + [
+        return view('contacts.form', $this->formProps($contact) + [
             'defaults' => ['type' => $contact->type, 'organization' => $contact->organization ? ['value' => $contact->organization->id, 'label' => $contact->organization->name] : null],
         ]);
     }

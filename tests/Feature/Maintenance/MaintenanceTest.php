@@ -10,7 +10,6 @@ use App\Domain\Jobs\Models\ProductionJob;
 use App\Domain\Maintenance\Models\MaintenanceRecord;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class MaintenanceTest extends TestCase
@@ -31,15 +30,15 @@ class MaintenanceTest extends TestCase
         $asset = Asset::factory()->create(['product_id' => $product->id, 'status' => 'available']);
         $user = $this->superAdmin();
         $this->actingAs($user);
-        $this->get('/maintenance/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Maintenance/Form'));
+        $this->get('/maintenance/create')->assertOk()->assertSee('New maintenance record')->assertSee('Scan or enter asset barcode');
         $this->post('/maintenance', $this->payload($product, $asset))->assertSessionHasNoErrors();
         $record = MaintenanceRecord::query()->firstOrFail();
         $this->assertSame($user->id, $record->reported_by);
         $this->assertSame(AssetStatus::InMaintenance, $asset->fresh()->status);
         $this->assertDatabaseHas('asset_status_history', ['asset_id' => $asset->id, 'to_status' => 'maintenance', 'context_id' => $record->id, 'context_type' => $record->getMorphClass(), 'user_id' => $user->id]);
-        $this->get('/maintenance?search=Repair&status=open')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Maintenance/Index')->has('records.data', 1));
-        $this->get("/maintenance/{$record->id}")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Maintenance/Show')->where('record.title', 'Repair light'));
-        $this->get("/maintenance/{$record->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Maintenance/Form'));
+        $this->get('/maintenance?search=Repair&status=open')->assertOk()->assertSee($record->reference)->assertSee('Repair light');
+        $this->get("/maintenance/{$record->id}")->assertOk()->assertSee('Repair light')->assertSee('Description');
+        $this->get("/maintenance/{$record->id}/edit")->assertOk()->assertSee('Edit maintenance record');
         $this->put("/maintenance/{$record->id}", $this->payload($product, $asset, ['status' => 'in_progress']))->assertSessionHasNoErrors();
         $this->assertNotNull($record->fresh()->started_at);
         $this->put("/maintenance/{$record->id}", $this->payload($product, $asset, ['status' => 'completed', 'resolution' => 'Fixed']))->assertSessionHasNoErrors();
@@ -189,10 +188,8 @@ class MaintenanceTest extends TestCase
         $product->delete();
         $asset->delete();
 
-        $this->get("/maintenance/{$record->id}")->assertOk()
-            ->assertInertia(fn (Assert $p) => $p->where('record.product.name', $product->name)->where('record.asset.asset_number', $asset->asset_number));
-        $this->get("/maintenance/{$record->id}/edit")->assertOk()
-            ->assertInertia(fn (Assert $p) => $p->has('products', 1)->has('assets', 1));
+        $this->get("/maintenance/{$record->id}")->assertOk()->assertSee($product->name)->assertSee($asset->asset_number);
+        $this->get("/maintenance/{$record->id}/edit")->assertOk()->assertSee($product->name)->assertSee($asset->asset_number);
         $this->put("/maintenance/{$record->id}", $this->payload($product, $asset, ['status' => 'completed']))->assertSessionHasNoErrors();
         $this->assertSame('completed', $record->fresh()->status->value);
         $this->assertSame(AssetStatus::InMaintenance, $asset->fresh()->status);

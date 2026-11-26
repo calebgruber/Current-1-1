@@ -21,8 +21,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class RuleController extends Controller
 {
@@ -32,7 +31,7 @@ class RuleController extends Controller
         private readonly CustomFieldService $customFields,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('rules.rules.view');
         $filters = $request->validate([
@@ -66,7 +65,7 @@ class RuleController extends Controller
                 ])->values(),
             ])->values();
 
-        return Inertia::render('Rules/Index', [
+        return view('rules.index', [
             'rules' => $rules->map(fn (ValidationRule $r) => [
                 'id' => $r->id,
                 'name' => $r->name,
@@ -88,7 +87,7 @@ class RuleController extends Controller
         ]);
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request): View
     {
         Gate::authorize('rules.rules.create');
         $preset = collect(RulePresets::all())->firstWhere('key', $request->query('preset'));
@@ -117,7 +116,7 @@ class RuleController extends Controller
         return redirect()->route('rules.index')->with('success', "Rule “{$rule->name}” created.");
     }
 
-    public function edit(ValidationRule $rule): Response
+    public function edit(ValidationRule $rule): View
     {
         Gate::authorize('rules.rules.edit');
 
@@ -219,14 +218,14 @@ class RuleController extends Controller
             ->values());
     }
 
-    private function builder(array $rule): Response
+    private function builder(array $rule): View
     {
         $definition = $rule['definition'];
         $productIds = collect([$definition['scope'] ?? [], $definition['requirement'] ?? []])
             ->filter(fn ($s) => ($s['match'] ?? null) === 'product')
             ->flatMap(fn ($s) => (array) ($s['values'] ?? []))->map(fn ($v) => (int) $v)->unique()->all();
 
-        return Inertia::render('Rules/Builder', [
+        return view('rules.builder', [
             'rule' => $rule,
             'checks' => RuleEvaluator::CHECKS,
             'matches' => RuleEvaluator::MATCHES,

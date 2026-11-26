@@ -4,7 +4,6 @@ namespace Tests\Feature\Authentication;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class AuthenticationPagesTest extends TestCase
@@ -46,14 +45,16 @@ class AuthenticationPagesTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->get(route('account.security'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Account/Security')
-                ->has('twoFactor')->has('passkeys')->has('policy'));
+            ->assertViewIs('account.security')
+            ->assertViewHas('twoFactor')->assertViewHas('passkeys')->assertViewHas('policy')
+            ->assertSee('Authenticator app')->assertSee('Passkeys')->assertSee('Sessions');
         $this->get(route('account.password'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Account/Password')->has('policy'));
+            ->assertViewIs('account.password')->assertViewHas('policy')->assertSee('Change password');
         $this->get(route('account.profile'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Account/Profile')->has('profile'));
+            ->assertViewIs('account.profile')->assertViewHas('profile')->assertSee('Save profile');
         $this->get(route('password.confirm'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Auth/ConfirmPassword'));
+            ->assertViewIs('auth.confirm-password')
+            ->assertSee('Confirm your password');
     }
 
     public function test_passkey_browser_endpoints_return_the_expected_options_envelope(): void

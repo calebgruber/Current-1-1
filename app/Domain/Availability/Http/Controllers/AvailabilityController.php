@@ -9,8 +9,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 /** The Availability Explorer: "how many can I use, and if not, why not?" */
 class AvailabilityController extends Controller
@@ -19,7 +18,7 @@ class AvailabilityController extends Controller
 
     public function __construct(private readonly AvailabilityExplorer $explorer) {}
 
-    public function index(Request $request, HierarchyOptions $hierarchy): Response
+    public function index(Request $request, HierarchyOptions $hierarchy): View
     {
         Gate::authorize('inventory.availability.view');
         $data = $this->validated($request, [
@@ -31,7 +30,7 @@ class AvailabilityController extends Controller
 
         $product = ! empty($data['product']) ? Product::query()->find($data['product']) : null;
 
-        return Inertia::render('Availability/Index', [
+        return view('availability.index', [
             'filters' => [
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),

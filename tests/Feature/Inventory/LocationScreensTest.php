@@ -8,7 +8,6 @@ use App\Domain\Inventory\Models\Location;
 use App\Domain\Inventory\Models\Product;
 use App\Domain\Inventory\Models\StockLevel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class LocationScreensTest extends TestCase
@@ -27,22 +26,14 @@ class LocationScreensTest extends TestCase
         Asset::create(['location_id' => $child->id, 'product_id' => $assetProduct->id, 'asset_number' => 'LIGHT-1', 'condition' => 'good', 'status' => 'available']);
         $this->actingAs($this->superAdmin());
 
-        $this->get('/inventory/locations?search=SH-1&type=shelf')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Inventory/Locations/Index')->has('locations', 1)
-            ->where('locations.0.path', 'Warehouse › Shelf')->where('locations.0.bulk_units', 12)
-            ->where('locations.0.assets_count', 1)->where('locations.0.custom_fields.zone', 'North')
-            ->where('customFieldColumns.0.key', 'zone')->where('filters.type', 'shelf'));
-        $this->get("/inventory/locations/create?parent={$parent->id}")->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Inventory/Locations/Form')->where('defaultParentId', $parent->id)->has('parentOptions', 2)->where('customFieldSchema.0.key', 'zone'));
-        $this->get("/inventory/locations/{$child->id}")->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Inventory/Locations/Show')->where('location.path', 'Warehouse › Shelf')
-            ->where('breadcrumbs.0.name', 'Warehouse')->where('assets.0.asset_number', 'LIGHT-1')
-            ->where('assetsTotal', 1)->where('stock.0.quantity_damaged', 2)
-            ->where('label.code', 'ABC')->where('customFields.zone', 'North')->has('history'));
-        $this->get("/inventory/locations/{$parent->id}")->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Inventory/Locations/Show')->where('children.0.id', $child->id));
-        $this->get("/inventory/locations/{$parent->id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Inventory/Locations/Form')->has('parentOptions', 0)->where('location.id', $parent->id));
+        $this->get('/inventory/locations?search=SH-1&type=shelf')->assertOk()
+            ->assertSee('Warehouse › Shelf')->assertSee('12')->assertSee('North');
+        $this->get("/inventory/locations/create?parent={$parent->id}")->assertOk()
+            ->assertSee('New location')->assertSee('Warehouse')->assertSee('Zone');
+        $this->get("/inventory/locations/{$child->id}")->assertOk()
+            ->assertSee('Warehouse › Shelf')->assertSee('LIGHT-1')->assertSee('ABC')->assertSee('North')->assertSee('History');
+        $this->get("/inventory/locations/{$parent->id}")->assertOk()->assertSee('Shelf');
+        $this->get("/inventory/locations/{$parent->id}/edit")->assertOk()->assertSee('Edit location')->assertSee('Warehouse');
     }
 
     public function test_location_create_update_validation_and_delete_guards(): void

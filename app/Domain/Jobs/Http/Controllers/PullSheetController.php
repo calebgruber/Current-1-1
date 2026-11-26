@@ -8,12 +8,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class PullSheetController extends Controller
 {
-    public function __invoke(Request $request, ProductionJob $job, JobService $jobs): Response|JsonResponse
+    public function __invoke(Request $request, ProductionJob $job, JobService $jobs): View|JsonResponse
     {
         Gate::any(['jobs.jobs.view', 'warehouse.picking.view', 'warehouse.prep.view']) || abort(403);
         $job->load(['client:id,name', 'venue:id,name']);
@@ -37,7 +36,7 @@ class PullSheetController extends Controller
             return response()->json(['job' => $header, 'sheet' => $sheet]);
         }
 
-        return Inertia::render('Jobs/PullSheet', [
+        return view('jobs.pull-sheet', [
             'job' => $header,
             'sheet' => $sheet,
             'generatedAt' => now()->toIso8601String(),

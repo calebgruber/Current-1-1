@@ -6,28 +6,12 @@ use App\Domain\Authentication\Models\Permission;
 use App\Domain\Authentication\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use InvalidArgumentException;
 
 abstract class TestCase extends BaseTestCase
 {
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Pages live in resources/js/Modules/{Module}/Pages/{Page}.vue ('Inventory/Products/Index').
-        $this->app->bind('inertia.testing.view-finder', fn () => new class
-        {
-            public function find(string $name): string
-            {
-                [$module, $rest] = array_pad(explode('/', $name, 2), 2, 'Index');
-                $path = resource_path("js/Modules/{$module}/Pages/{$rest}.vue");
-                if (! is_file($path)) {
-                    throw new InvalidArgumentException("Page [{$name}] not found at {$path}.");
-                }
-
-                return $path;
-            }
-        });
     }
 
     protected function superAdmin(array $attributes = []): User

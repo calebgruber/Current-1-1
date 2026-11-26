@@ -7,7 +7,6 @@ use App\Domain\Contacts\Models\Contact;
 use App\Domain\Inventory\Models\Product;
 use App\Domain\Inventory\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ModuleScreensTest extends TestCase
@@ -23,19 +22,19 @@ class ModuleScreensTest extends TestCase
         $contact = Contact::query()->create(['name' => 'Stage Manager', 'type' => 'person']);
         $this->actingAs($this->superAdmin());
 
-        $this->get('/inventory/products')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Inventory/Products/Index')->has('products.data', 1));
-        $this->get('/inventory/products/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Inventory/Products/Form'));
-        $this->get("/inventory/products/{$product->id}")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Inventory/Products/Show')->where('product.name', 'Console'));
-        $this->get("/inventory/products/{$product->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Inventory/Products/Form'));
-        $this->get('/assets')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Assets/Index')->has('assets.data', 1));
-        $this->get('/assets/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Assets/Form'));
-        $this->get("/assets/{$asset->id}")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Assets/Show')->where('asset.asset_number', 'CON-001'));
-        $this->get("/assets/{$asset->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Assets/Form'));
-        $this->get('/contacts')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Contacts/Index')->has('contacts.data', 1));
-        $this->get('/contacts/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Contacts/Form'));
-        $this->get("/contacts/{$contact->id}")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Contacts/Show')->where('contact.name', 'Stage Manager'));
-        $this->get("/contacts/{$contact->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Contacts/Form'));
-        $this->get("/availability?product={$product->id}&from=2030-01-01&to=2030-01-02")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Availability/Index')->where('initial.product.id', $product->id));
+        $this->get('/inventory/products')->assertOk()->assertSee('Products')->assertSee('Console');
+        $this->get('/inventory/products/create')->assertOk()->assertSee('New product');
+        $this->get("/inventory/products/{$product->id}")->assertOk()->assertSee('Console')->assertSee('Availability');
+        $this->get("/inventory/products/{$product->id}/edit")->assertOk()->assertSee('Edit product');
+        $this->get('/assets')->assertOk()->assertSee('Assets')->assertSee('CON-001');
+        $this->get('/assets/create')->assertOk()->assertSee('New asset');
+        $this->get("/assets/{$asset->id}")->assertOk()->assertSee('CON-001')->assertSee('Condition reports');
+        $this->get("/assets/{$asset->id}/edit")->assertOk()->assertSee('Edit asset');
+        $this->get('/contacts')->assertOk()->assertViewIs('contacts.index')->assertSee('Contacts')->assertSee('Stage Manager');
+        $this->get('/contacts/create')->assertOk()->assertViewIs('contacts.form')->assertSee('New contact');
+        $this->get("/contacts/{$contact->id}")->assertOk()->assertViewIs('contacts.show')->assertSee('Stage Manager');
+        $this->get("/contacts/{$contact->id}/edit")->assertOk()->assertViewIs('contacts.form')->assertSee('Edit contact');
+        $this->get("/availability?product={$product->id}&from=2030-01-01&to=2030-01-02")->assertOk()->assertViewIs('availability.index')->assertViewHas('initial.product.id', $product->id);
     }
 
     public function test_product_edit_preserves_omitted_relationships_and_inactive_state(): void

@@ -8,7 +8,6 @@ use App\Domain\Inventory\Models\Product;
 use App\Domain\Inventory\Services\HierarchyOptions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ReferenceDataScreensTest extends TestCase
@@ -21,10 +20,8 @@ class ReferenceDataScreensTest extends TestCase
         Manufacturer::query()->create(['name' => 'Example']);
         $this->actingAs($this->superAdmin());
 
-        $this->get('/inventory/categories')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Inventory/Categories/Index')->has('categories', 1)->where('categories.0.name', 'Lighting'));
-        $this->get('/inventory/manufacturers')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Inventory/Manufacturers/Index')->has('manufacturers.data', 1)->where('manufacturers.data.0.name', 'Example'));
+        $this->get('/inventory/categories')->assertOk()->assertSee('Categories')->assertSee('Lighting');
+        $this->get('/inventory/manufacturers')->assertOk()->assertSee('Manufacturers')->assertSee('Example');
     }
 
     public function test_categories_reject_cycles_and_reparent_children_on_deletion(): void
@@ -91,8 +88,7 @@ class ReferenceDataScreensTest extends TestCase
         }
         $this->actingAs($this->superAdmin());
 
-        $this->get('/inventory/categories')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->has('categories', 26)->where('categories.25.id', $parent->id)->where('categories.25.depth', 25));
+        $this->get('/inventory/categories')->assertOk()->assertSee('Level 25');
         $this->assertCount(26, app(HierarchyOptions::class)->descendantIds(Category::class, $root->id));
         $this->put("/inventory/categories/{$root->id}", ['name' => 'Root', 'parent_id' => $parent->id])
             ->assertSessionHasErrors('parent_id');

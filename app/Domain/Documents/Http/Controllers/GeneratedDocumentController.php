@@ -18,8 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class GeneratedDocumentController extends Controller
@@ -29,7 +28,7 @@ class GeneratedDocumentController extends Controller
         private readonly CustomFieldService $customFields,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('documents.documents.view');
         $filters = $request->validate([
@@ -65,7 +64,7 @@ class GeneratedDocumentController extends Controller
             $entityLabel = $entity ? DocumentGenerator::entityLabel($entity) : null;
         }
 
-        return Inertia::render('Documents/Index', [
+        return view('documents.index', [
             'documents' => $documents,
             'filters' => $filters,
             'entityLabel' => $entityLabel,
@@ -82,12 +81,12 @@ class GeneratedDocumentController extends Controller
         ]);
     }
 
-    public function show(Request $request, GeneratedDocument $document): Response
+    public function show(Request $request, GeneratedDocument $document): View
     {
         $this->authorizeView($request, $document);
         $document->load(['creator:id,name', 'template:id,name,paper_size,orientation', 'documentable']);
 
-        return Inertia::render('Documents/Show', [
+        return view('documents.show', [
             'document' => $this->row($document),
             // The HTML snapshot was sanitised by DocumentRenderer when generated; it is shown in a sandboxed iframe.
             'html' => (string) $document->html,

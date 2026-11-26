@@ -3,7 +3,6 @@
 namespace Tests\Feature\Search;
 
 use App\Domain\Inventory\Models\Product;
-use App\Domain\Search\Services\SearchService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,6 +43,8 @@ class SearchEndpointTest extends TestCase
         $this->actingAs($this->superAdmin())
             ->get(route('search.index', ['q' => 'lustr']))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Search/Index')->where('q', 'lustr')->has('types', count(SearchService::TYPES)));
+            ->assertViewIs('search.index')
+            ->assertViewHas('q', 'lustr')
+            ->assertSee('ETC Lustr Series 3');
     }
 }

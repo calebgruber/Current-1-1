@@ -17,8 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ReportController extends Controller
@@ -32,7 +31,7 @@ class ReportController extends Controller
         private readonly ReportSourceRegistry $registry,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('reporting.reports.view');
         $user = $request->user();
@@ -61,7 +60,7 @@ class ReportController extends Controller
                 'updated_at' => $r->updated_at?->toIso8601String(),
             ])->values();
 
-        return Inertia::render('Reports/Index', [
+        return view('reports.index', [
             'reports' => $reports,
             'filters' => $filters,
             'sources' => collect($this->registry->all())
@@ -70,7 +69,7 @@ class ReportController extends Controller
         ]);
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request): View
     {
         Gate::authorize('reporting.reports.create');
         $source = $request->validate(['source' => ['nullable', 'string', 'max:32']])['source'] ?? null;
@@ -92,7 +91,7 @@ class ReportController extends Controller
         return redirect()->route('reports.show', $report)->with('success', 'Report saved.');
     }
 
-    public function show(Request $request, Report $report): Response
+    public function show(Request $request, Report $report): View
     {
         $this->authorizeView($request, $report);
         $user = $request->user();
@@ -105,7 +104,7 @@ class ReportController extends Controller
             $error = $e->getMessage();
         }
 
-        return Inertia::render('Reports/Show', [
+        return view('reports.show', [
             'report' => $this->reportArray($report) + [
                 'owner' => $report->creator?->name,
                 'source_label' => $this->registry->get($report->source)['label'] ?? $report->source,
@@ -129,7 +128,7 @@ class ReportController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Report $report): Response
+    public function edit(Request $request, Report $report): View
     {
         $this->authorizeManage($request, $report, 'edit');
 
@@ -212,11 +211,11 @@ class ReportController extends Controller
         ]);
     }
 
-    private function builder(Request $request, array $report, array $catalogue): Response
+    private function builder(Request $request, array $report, array $catalogue): View
     {
         $user = $request->user();
 
-        return Inertia::render('Reports/Builder', [
+        return view('reports.builder', [
             'report' => $report,
             'sources' => $catalogue,
             'operators' => collect(ReportRunner::OPERATORS)->map(fn ($label, $key) => ['value' => $key, 'label' => $label])->values(),

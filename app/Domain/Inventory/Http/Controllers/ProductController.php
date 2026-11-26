@@ -31,8 +31,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductController extends Controller
@@ -45,7 +44,7 @@ class ProductController extends Controller
         private readonly HierarchyOptions $hierarchy,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('inventory.products.view');
         $filters = $this->filters($request);
@@ -57,7 +56,7 @@ class ProductController extends Controller
 
         $values = $this->customFields->valuesForMany('product', $products->getCollection()->pluck('id')->all());
 
-        return Inertia::render('Inventory/Products/Index', [
+        return view('inventory.products.index', [
             'products' => $products->through(fn (Product $p) => [
                 'id' => $p->id,
                 'name' => $p->name,
@@ -131,11 +130,11 @@ class ProductController extends Controller
         ]));
     }
 
-    public function create(): Response
+    public function create(): View
     {
         Gate::authorize('inventory.products.create');
 
-        return Inertia::render('Inventory/Products/Form', $this->formProps(null));
+        return view('inventory.products.form', $this->formProps(null));
     }
 
     public function store(ProductRequest $request): RedirectResponse
@@ -149,7 +148,7 @@ class ProductController extends Controller
         return redirect()->route('inventory.products.show', $product)->with('success', "Product “{$product->name}” created.");
     }
 
-    public function show(Product $product, AvailabilityService $availability, HistoryPresenter $history): Response
+    public function show(Product $product, AvailabilityService $availability, HistoryPresenter $history): View
     {
         Gate::authorize('inventory.products.view');
         $product->load(['category:id,name,color,parent_id', 'manufacturer:id,name,website', 'defaultLocation:id,name,parent_id', 'tags:id,name', 'images']);
@@ -225,7 +224,7 @@ class ProductController extends Controller
                 'created_at' => $m->created_at?->toIso8601String(),
             ]);
 
-        return Inertia::render('Inventory/Products/Show', [
+        return view('inventory.products.show', [
             'product' => $this->present($product) + [
                 'category' => $product->category?->only(['id', 'name', 'color']),
                 'manufacturer' => $product->manufacturer?->only(['id', 'name', 'website']),
@@ -249,7 +248,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function edit(Product $product): Response
+    public function edit(Product $product): View
     {
         Gate::authorize('inventory.products.edit');
         $product->load(['tags:id,name', 'manufacturer:id,name']);
@@ -260,7 +259,7 @@ class ProductController extends Controller
             ]);
         }
 
-        return Inertia::render('Inventory/Products/Form', $this->formProps($product));
+        return view('inventory.products.form', $this->formProps($product));
     }
 
     public function update(ProductRequest $request, Product $product): RedirectResponse
@@ -354,7 +353,7 @@ class ProductController extends Controller
     }
 
     /** Printable barcode / QR labels for products (?ids[]=). */
-    public function labels(Request $request, LabelRenderer $renderer): Response
+    public function labels(Request $request, LabelRenderer $renderer): View
     {
         Gate::authorize('inventory.products.view');
         $data = $request->validate([
@@ -376,7 +375,7 @@ class ProductController extends Controller
             }
         }
 
-        return Inertia::render('Inventory/Labels', [
+        return view('inventory.labels', [
             'title' => 'Product labels',
             'labels' => $labels,
             'copies' => $copies,

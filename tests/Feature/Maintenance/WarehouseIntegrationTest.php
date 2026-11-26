@@ -15,7 +15,6 @@ use App\Domain\Warehouse\Services\WarehouseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class WarehouseIntegrationTest extends TestCase
@@ -161,7 +160,7 @@ class WarehouseIntegrationTest extends TestCase
         $record = MaintenanceRecord::query()->create(['product_id' => $product->id, 'asset_id' => $asset->id, 'quantity' => 1, 'type' => 'repair', 'priority' => 'normal', 'status' => 'open', 'title' => 'Repair']);
         DB::table('assets')->where('id', $asset->id)->update(['product_id' => $other->id]);
         $this->actingAs($this->superAdmin())->get("/maintenance/{$record->id}/edit")
-            ->assertOk()->assertInertia(fn (Assert $p) => $p->where('assets.0.id', $asset->id));
+            ->assertOk()->assertSee($asset->asset_number);
         $data = ['product_id' => $product->id, 'asset_id' => $asset->id, 'quantity' => 1, 'type' => 'repair', 'priority' => 'normal', 'status' => 'completed', 'title' => 'Repair'];
         $this->put("/maintenance/{$record->id}", $data)->assertSessionHasNoErrors();
         $this->assertSame(AssetStatus::Available, $asset->fresh()->status);

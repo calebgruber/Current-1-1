@@ -10,8 +10,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class WarehouseController extends Controller
 {
@@ -39,7 +38,7 @@ class WarehouseController extends Controller
         return $slug ? "warehouse.{$slug}.{$action}" : null;
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::any(self::VIEW_KEYS) || abort(403);
 
@@ -85,7 +84,7 @@ class WarehouseController extends Controller
 
         $user = $request->user();
 
-        return Inertia::render('Warehouse/Index', [
+        return view('warehouse.index', [
             'queues' => array_values($queues),
             'recentScans' => $this->progress->recentScans(null, 12),
             'stations' => collect(self::STATIONS)->map(fn (ScanMode $m, string $slug) => [
@@ -98,7 +97,7 @@ class WarehouseController extends Controller
         ]);
     }
 
-    public function station(Request $request): Response
+    public function station(Request $request): View
     {
         $station = $request->route('station');
         $mode = self::STATIONS[$station] ?? abort(404);
@@ -110,7 +109,7 @@ class WarehouseController extends Controller
 
         $progress = $job ? $this->progress->lines($job) : null;
 
-        return Inertia::render('Warehouse/Station', [
+        return view('warehouse.station', [
             'station' => $station,
             'mode' => $mode->value,
             'modeLabel' => $mode->label(),
@@ -133,7 +132,7 @@ class WarehouseController extends Controller
         ]);
     }
 
-    public function display(Request $request, ?ProductionJob $job = null): Response
+    public function display(Request $request, ?ProductionJob $job = null): View
     {
         Gate::authorize('warehouse.display.view');
         $user = $request->user();
@@ -143,7 +142,7 @@ class WarehouseController extends Controller
         $mode = $request->query('mode');
         $mode = is_string($mode) ? ScanMode::tryFrom($mode) : null;
 
-        return Inertia::render('Warehouse/Display', [
+        return view('warehouse.display', [
             'job' => $job ? $this->progress->header($job) : null,
             'lines' => $progress['lines'] ?? [],
             'totals' => $progress['totals'] ?? null,

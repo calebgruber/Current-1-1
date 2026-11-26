@@ -7,7 +7,6 @@ use App\Domain\Inventory\Models\Product;
 use App\Domain\Inventory\Models\StockLevel;
 use App\Domain\Jobs\Models\ProductionJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class JobAllocationTest extends TestCase
@@ -38,13 +37,15 @@ class JobAllocationTest extends TestCase
             ->assertJsonPath('sheet.sections.0.lines.0.pull', 25);
 
         $this->actingAs($admin)->get("/jobs/{$job->id}/pull-sheet")->assertOk()
-            ->assertInertia(fn (Assert $p) => $p->component('Jobs/PullSheet')->where('sheet.totals.pull', 25));
+            ->assertViewIs('jobs.pull-sheet')
+            ->assertViewHas('sheet', fn ($sheet) => $sheet['totals']['pull'] === 25)
+            ->assertSee('Picked 0 / 25');
 
         $this->actingAs($admin)->get("/jobs/{$job->id}")->assertOk()
-            ->assertInertia(fn (Assert $p) => $p->where('totals.pull', 25)
-                ->where('items.0.required_quantity', 20)
-                ->where('items.0.spare_quantity', 5)
-                ->where("availability.{$lustr->id}.level", 'ok'));
+            ->assertViewIs('jobs.show')
+            ->assertViewHas('totals', fn ($totals) => $totals['pull'] === 25)
+            ->assertViewHas('items', fn ($items) => $items[0]['required_quantity'] === 20 && $items[0]['spare_quantity'] === 5)
+            ->assertViewHas('availability', fn ($availability) => data_get($availability, "{$lustr->id}.level") === 'ok');
     }
 
     public function test_quantity_required_is_mandatory(): void
@@ -137,7 +138,9 @@ class JobAllocationTest extends TestCase
 
         $editor = $this->userWithPermissions(['jobs.jobs.view', 'jobs.items.edit']);
         $this->actingAs($editor)->get("/jobs/{$job->id}")
-            ->assertInertia(fn (Assert $p) => $p->where('can.items_edit', true)->where('job.allows_allocation_edits', true));
+            ->assertViewIs('jobs.show')
+            ->assertViewHas('can.items_edit', true)
+            ->assertViewHas('job.allows_allocation_edits', true);
         $this->actingAs($editor)->put("/jobs/{$job->id}/items/{$item->id}", ['required_quantity' => 3, 'spare_quantity' => 2])
             ->assertSessionHasNoErrors();
 
@@ -156,7 +159,8 @@ class JobAllocationTest extends TestCase
         $item = $job->items()->create(['product_id' => $product->id, 'required_quantity' => 2]);
         $viewer = $this->userWithPermissions(['jobs.jobs.view']);
         $this->actingAs($viewer)->get("/jobs/{$job->id}")
-            ->assertInertia(fn (Assert $p) => $p->where('can.items_edit', false));
+            ->assertViewIs('jobs.show')
+            ->assertViewHas('can.items_edit', false);
         $this->actingAs($viewer)->put("/jobs/{$job->id}/items/{$item->id}", ['required_quantity' => 1])->assertForbidden();
         $other = ProductionJob::factory()->create();
         $this->actingAs($this->superAdmin())->put("/jobs/{$other->id}/items/{$item->id}", ['required_quantity' => 1])->assertNotFound();

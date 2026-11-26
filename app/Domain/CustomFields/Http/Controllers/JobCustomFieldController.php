@@ -9,18 +9,16 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class JobCustomFieldController extends Controller
 {
     private const TYPES = ['text', 'long_text', 'number', 'currency', 'date', 'checkbox', 'dropdown', 'multi_select', 'url'];
 
-    public function index(): Response
+    public function index()
     {
         Gate::authorize('settings.custom_fields.view');
 
-        return Inertia::render('CustomFields/Index', [
+        return view('custom-fields.index', [
             'fields' => CustomFieldDefinition::query()->where('entity_type', 'job')
                 ->orderBy('sort_order')->orderBy('id')
                 ->get(['id', 'key', 'label', 'type', 'is_required', 'options', 'help_text']),

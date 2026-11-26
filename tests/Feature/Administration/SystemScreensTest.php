@@ -9,7 +9,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class SystemScreensTest extends TestCase
@@ -22,11 +21,10 @@ class SystemScreensTest extends TestCase
         $this->actingAs($this->userWithPermissions(['admin.backups.view']))->get('/admin/system')->assertForbidden();
         $this->actingAs($this->userWithPermissions(['admin.system.admin']))->get('/admin/system')->assertForbidden();
         $this->actingAs($this->userWithPermissions(['admin.system.view']))->get('/admin/system')
-            ->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Administration/System/Index')
-            ->where('status.database', 'ok')
-            ->where('status.migrations.status', 'available')
-            ->has('status.migrations.pending'));
+            ->assertOk()->assertViewIs('administration.system.index')
+            ->assertViewHas('status.database', 'ok')
+            ->assertViewHas('status.migrations.status', 'available')
+            ->assertSee('Health')->assertSee('Migrations');
     }
 
     public function test_pending_migrations_are_reported_without_running_them(): void
@@ -35,9 +33,9 @@ class SystemScreensTest extends TestCase
         DB::table('migrations')->where('migration', $migration)->delete();
 
         $this->actingAs($this->userWithPermissions(['admin.system.view']))->get('/admin/system')
-            ->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('status.migrations.status', 'available')
-            ->where('status.migrations.pending', fn ($pending) => in_array($migration, $pending->all(), true)));
+            ->assertOk()->assertViewIs('administration.system.index')
+            ->assertViewHas('status.migrations.status', 'available')
+            ->assertViewHas('status.migrations.pending', fn ($pending) => in_array($migration, $pending, true));
         $this->assertDatabaseMissing('migrations', ['migration' => $migration]);
     }
 
@@ -46,9 +44,10 @@ class SystemScreensTest extends TestCase
         $user = $this->userWithPermissions(['admin.system.view']);
         Schema::drop('migrations');
 
-        $this->actingAs($user)->get('/admin/system')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('status.migrations.status', 'repository_missing')
-            ->where('status.migrations.pending', null));
+        $this->actingAs($user)->get('/admin/system')->assertOk()->assertViewIs('administration.system.index')
+            ->assertViewHas('status.migrations.status', 'repository_missing')
+            ->assertViewHas('status.migrations.pending', null)
+            ->assertSee('Migration repository is missing.');
     }
 
     public function test_failed_health_checks_report_unavailable_without_exposing_errors(): void

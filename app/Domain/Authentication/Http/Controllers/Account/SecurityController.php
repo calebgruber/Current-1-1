@@ -8,17 +8,15 @@ use App\Domain\Authentication\Services\TwoFactorAuthenticator;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 use Laravel\Passkeys\Passkey;
 
 class SecurityController extends Controller
 {
-    public function show(Request $request, SecurityPolicy $policy, TwoFactorAuthenticator $twoFactor, ActiveSessions $sessions): Response
+    public function show(Request $request, SecurityPolicy $policy, TwoFactorAuthenticator $twoFactor, ActiveSessions $sessions)
     {
         $user = $request->user();
 
-        return Inertia::render('Account/Security', [
+        return view('account.security', [
             'twoFactor' => [
                 'enabled' => $user->hasTwoFactorEnabled(),
                 'pending' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null,

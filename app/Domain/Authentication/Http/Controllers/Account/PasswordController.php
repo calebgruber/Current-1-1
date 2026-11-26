@@ -9,14 +9,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class PasswordController extends Controller
 {
-    public function edit(Request $request, SecurityPolicy $policy): Response
+    public function edit(Request $request, SecurityPolicy $policy)
     {
-        return Inertia::render('Account/Password', [
+        return view('account.password', [
             'expired' => $policy->passwordExpired($request->user()),
             'policy' => $this->policySummary($policy),
         ]);

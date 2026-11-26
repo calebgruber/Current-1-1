@@ -16,8 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class LocationController extends Controller
 {
@@ -28,7 +27,7 @@ class LocationController extends Controller
         private readonly CustomFieldService $customFields,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('inventory.locations.view');
         $filters = $request->validate([
@@ -70,7 +69,7 @@ class LocationController extends Controller
                 && (empty($filters['type']) || $r['type'] === $filters['type'])));
         }
 
-        return Inertia::render('Inventory/Locations/Index', [
+        return view('inventory.locations.index', [
             'locations' => $rows,
             'filters' => ['search' => $filters['search'] ?? '', 'type' => $filters['type'] ?? null],
             'types' => $this->typeOptions(),
@@ -91,12 +90,12 @@ class LocationController extends Controller
         return response()->json($options);
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request): View
     {
         Gate::authorize('inventory.locations.create');
         $parent = $request->integer('parent') ?: null;
 
-        return Inertia::render('Inventory/Locations/Form', $this->formProps(null) + ['defaultParentId' => $parent]);
+        return view('inventory.locations.form', $this->formProps(null) + ['defaultParentId' => $parent]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -115,7 +114,7 @@ class LocationController extends Controller
         return redirect()->route('inventory.locations.show', $location)->with('success', 'Location created.');
     }
 
-    public function show(Location $location, HistoryPresenter $history, LabelRenderer $labels): Response
+    public function show(Location $location, HistoryPresenter $history, LabelRenderer $labels): View
     {
         Gate::authorize('inventory.locations.view');
         $location->load('parent');
@@ -153,7 +152,7 @@ class LocationController extends Controller
 
         $code = $location->barcode ?: ($location->code ?: 'L'.str_pad((string) $location->id, 6, '0', STR_PAD_LEFT));
 
-        return Inertia::render('Inventory/Locations/Show', [
+        return view('inventory.locations.show', [
             'location' => $this->present($location) + ['path' => $location->path()],
             'breadcrumbs' => $breadcrumbs,
             'children' => $children,
@@ -167,11 +166,11 @@ class LocationController extends Controller
         ]);
     }
 
-    public function edit(Location $location): Response
+    public function edit(Location $location): View
     {
         Gate::authorize('inventory.locations.edit');
 
-        return Inertia::render('Inventory/Locations/Form', $this->formProps($location) + ['defaultParentId' => null]);
+        return view('inventory.locations.form', $this->formProps($location) + ['defaultParentId' => null]);
     }
 
     public function update(Request $request, Location $location): RedirectResponse

@@ -8,7 +8,6 @@ use App\Domain\Jobs\Models\ProductionJob;
 use App\Domain\Rules\Models\ValidationRule;
 use App\Domain\Rules\Services\JobValidationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class RuleScreensTest extends TestCase
@@ -20,11 +19,11 @@ class RuleScreensTest extends TestCase
         $user = $this->superAdmin();
         $job = ProductionJob::factory()->create();
         $definition = ['scope' => ['match' => 'any', 'values' => []], 'check' => 'max_quantity', 'requirement' => ['quantity' => 2]];
-        $this->actingAs($user)->get('/rules')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Rules/Index'));
-        $this->get('/rules/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Rules/Builder'));
+        $this->actingAs($user)->get('/rules')->assertOk()->assertViewIs('rules.index');
+        $this->get('/rules/create')->assertOk()->assertViewIs('rules.builder');
         $this->post('/rules', ['name' => 'Limit', 'severity' => 'warning', 'definition' => $definition])->assertSessionHasNoErrors();
         $rule = ValidationRule::where('name', 'Limit')->firstOrFail();
-        $this->get("/rules/{$rule->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Rules/Builder'));
+        $this->get("/rules/{$rule->id}/edit")->assertOk()->assertViewIs('rules.builder')->assertSee('Limit');
         $this->postJson('/rules/test', ['job_id' => $job->id, 'definition' => $definition])->assertOk()->assertJsonPath('passed', false);
     }
 

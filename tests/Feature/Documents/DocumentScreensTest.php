@@ -6,7 +6,6 @@ use App\Domain\Documents\Models\DocumentTemplate;
 use App\Domain\Documents\Models\GeneratedDocument;
 use App\Domain\Jobs\Models\ProductionJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class DocumentScreensTest extends TestCase
@@ -20,11 +19,11 @@ class DocumentScreensTest extends TestCase
         $template = DocumentTemplate::create(['name' => 'Quote', 'type' => 'quotation', 'entity_type' => 'job', 'editor' => 'code']);
         $document = GeneratedDocument::create(['type' => 'quotation', 'documentable_type' => 'job', 'documentable_id' => $job->id, 'title' => 'Quote', 'html' => '<p>Quote</p>', 'template_id' => $template->id]);
 
-        $this->actingAs($user)->get('/documents')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Documents/Index')->has('documents.data', 1));
-        $this->get("/documents/{$document->id}")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Documents/Show')->where('html', '<p>Quote</p>'));
-        $this->get('/documents/templates')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Documents/Templates/Index'));
-        $this->get('/documents/templates/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Documents/Templates/Designer'));
-        $this->get("/documents/templates/{$template->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Documents/Templates/Designer'));
+        $this->actingAs($user)->get('/documents')->assertOk()->assertViewIs('documents.index')->assertSee($document->number);
+        $this->get("/documents/{$document->id}")->assertOk()->assertViewIs('documents.show')->assertSee('Document preview');
+        $this->get('/documents/templates')->assertOk()->assertViewIs('documents.templates.index')->assertSee('Quote');
+        $this->get('/documents/templates/create')->assertOk()->assertViewIs('documents.templates.designer')->assertSee('New template');
+        $this->get("/documents/templates/{$template->id}/edit")->assertOk()->assertViewIs('documents.templates.designer')->assertSee('Edit template');
     }
 
     public function test_changing_a_default_template_type_requires_admin_and_replaces_new_type_default(): void

@@ -9,14 +9,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Contracts\View\View;
 
 class ConfirmPasswordController extends Controller
 {
-    public function show(SecurityPolicy $policy): Response
+    public function show(SecurityPolicy $policy): View
     {
-        return Inertia::render('Auth/ConfirmPassword', [
+        return view('auth.confirm-password', [
             'passkeysEnabled' => $policy->passkeysAllowed() && request()->user()->passkeys()->exists(),
         ]);
     }

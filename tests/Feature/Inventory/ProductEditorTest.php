@@ -7,7 +7,6 @@ use App\Domain\Inventory\Models\Tag;
 use App\Domain\Inventory\Services\ProductService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ProductEditorTest extends TestCase
@@ -34,9 +33,8 @@ class ProductEditorTest extends TestCase
         $this->assertSame(0, $alternative->alternatives()->count());
 
         $this->get("/inventory/products/{$product->id}/edit")->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Inventory/Products/Form')
-                ->where('product.tracking', 'bulk')->where('product.accessories.0.name', 'Cable')
-                ->where('product.alternatives.0.name', 'Alternate')->has('product.tags', 2));
+            ->assertSee('Edit product')->assertSee('Accessories')->assertSee('Cable')
+            ->assertSee('Alternative products')->assertSee('Alternate')->assertSee('Audio')->assertSee('Live');
         $this->put("/inventory/products/{$product->id}", ['name' => 'Console', 'tracking' => 'serialized'])
             ->assertSessionHasErrors('tracking');
         $this->assertSame('bulk', $product->fresh()->tracking->value);
@@ -86,7 +84,7 @@ class ProductEditorTest extends TestCase
         $payload = ['name' => $product->name, 'tracking' => 'serialized'];
 
         $this->get("/inventory/products/{$product->id}/edit")->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('canViewProducts', false)->has('product.alternatives', 0));
+            ->assertSee('Product view permission is required')->assertDontSee('Alternative products');
         $this->put("/inventory/products/{$product->id}", $payload + ['alternatives' => []])->assertForbidden();
         $this->put("/inventory/products/{$product->id}", $payload + ['accessories' => []])->assertForbidden();
         $this->put("/inventory/products/{$product->id}", $payload)->assertSessionHasNoErrors();

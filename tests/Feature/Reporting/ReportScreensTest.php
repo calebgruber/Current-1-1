@@ -5,7 +5,6 @@ namespace Tests\Feature\Reporting;
 use App\Domain\Reporting\Models\Report;
 use App\Domain\Reporting\Services\ReportSourceRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ReportScreensTest extends TestCase
@@ -15,12 +14,12 @@ class ReportScreensTest extends TestCase
     public function test_report_create_run_and_edit_screens(): void
     {
         $user = $this->superAdmin();
-        $this->actingAs($user)->get('/reports')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Reports/Index'));
-        $this->get('/reports/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Reports/Builder'));
+        $this->actingAs($user)->get('/reports')->assertOk()->assertViewIs('reports.index');
+        $this->get('/reports/create')->assertOk()->assertViewIs('reports.builder');
         $this->post('/reports', ['name' => 'Jobs', 'source' => 'jobs', 'definition' => ['columns' => ['number', 'name']]])->assertSessionHasNoErrors();
         $report = Report::where('name', 'Jobs')->firstOrFail();
-        $this->get("/reports/{$report->id}")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Reports/Show')->has('result.columns', 2));
-        $this->get("/reports/{$report->id}/edit")->assertOk()->assertInertia(fn (Assert $p) => $p->component('Reports/Builder'));
+        $this->get("/reports/{$report->id}")->assertOk()->assertViewIs('reports.show')->assertViewHas('result.columns', fn ($columns) => count($columns) === 2);
+        $this->get("/reports/{$report->id}/edit")->assertOk()->assertViewIs('reports.builder');
     }
 
     public function test_schedules_require_access_to_the_report_source(): void
@@ -41,14 +40,16 @@ class ReportScreensTest extends TestCase
             $columns = array_column($source['columns'], 'key');
             $this->get('/reports/create?source='.$source['key'])
                 ->assertOk()
-                ->assertInertia(fn (Assert $p) => $p->where('report.source', $source['key']));
+                ->assertViewIs('reports.builder')
+                ->assertViewHas('report.source', $source['key']);
             $this->post('/reports', [
                 'name' => $source['label'], 'source' => $source['key'], 'definition' => ['columns' => $columns],
             ])->assertSessionHasNoErrors();
             $report = Report::where('source', $source['key'])->firstOrFail();
             $this->get("/reports/{$report->id}")
                 ->assertOk()
-                ->assertInertia(fn (Assert $p) => $p->has('result.columns', count($columns)));
+                ->assertViewIs('reports.show')
+                ->assertViewHas('result.columns', fn ($resultColumns) => count($resultColumns) === count($columns));
         }
     }
 
@@ -57,6 +58,8 @@ class ReportScreensTest extends TestCase
         $this->actingAs($this->userWithPermissions(['reporting.reports.create']))
             ->get('/reports/create')
             ->assertOk()
-            ->assertInertia(fn (Assert $p) => $p->where('report.source', null)->has('sources', 0));
+            ->assertViewIs('reports.builder')
+            ->assertViewHas('report.source', null)
+            ->assertViewHas('sources', []);
     }
 }

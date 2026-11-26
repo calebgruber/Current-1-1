@@ -23,8 +23,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class JobController extends Controller
 {
@@ -33,7 +32,7 @@ class JobController extends Controller
         private readonly CustomFieldService $customFields,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('jobs.jobs.view');
 
@@ -98,7 +97,7 @@ class JobController extends Controller
             $jobs->through(fn (array $row) => $row + ['custom_fields' => $customValues[$row['id']] ?? []]);
         }
 
-        return Inertia::render('Jobs/Index', [
+        return view('jobs.index', [
             'jobs' => $jobs,
             'board' => $board,
             'view' => $view,
@@ -117,11 +116,11 @@ class JobController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(): View
     {
         Gate::authorize('jobs.jobs.create');
 
-        return Inertia::render('Jobs/Form', [
+        return view('jobs.form', [
             'job' => null,
             'contacts' => [],
             'customFieldSchema' => $this->customFields->schema('job'),
@@ -148,7 +147,7 @@ class JobController extends Controller
         return redirect()->route('jobs.show', $job)->with('success', "Job {$job->number} created.");
     }
 
-    public function show(Request $request, ProductionJob $job, AllocationGuard $guard, JobValidationService $validation): Response
+    public function show(Request $request, ProductionJob $job, AllocationGuard $guard, JobValidationService $validation): View
     {
         Gate::authorize('jobs.jobs.view');
         $user = $request->user();
@@ -170,7 +169,7 @@ class JobController extends Controller
 
         $canFilesView = $user->can('jobs.files.view') || $user->can('jobs.jobs.edit');
 
-        return Inertia::render('Jobs/Show', [
+        return view('jobs.show', [
             'job' => $this->presenter->header($job, $user) + [
                 'client_detail' => $job->client ? ['id' => $job->client->id, 'name' => $job->client->name, 'email' => $job->client->email, 'phone' => $job->client->phone] : null,
             ],
@@ -212,12 +211,12 @@ class JobController extends Controller
         ]);
     }
 
-    public function edit(ProductionJob $job): Response
+    public function edit(ProductionJob $job): View
     {
         Gate::authorize('jobs.jobs.edit');
         $job->load(['client:id,name', 'venue:id,name', 'owner:id,name', 'contacts:id,name']);
 
-        return Inertia::render('Jobs/Form', [
+        return view('jobs.form', [
             'job' => $this->presenter->header($job, request()->user()) + [
                 'client_label' => $job->client?->name,
                 'venue_label' => $job->venue?->name,
@@ -261,7 +260,9 @@ class JobController extends Controller
 
         DB::transaction(function () use ($job, $request, $clean, $datesChanged, $jobs) {
             $job->save();
-            $this->syncContacts($job, $request->validated('contacts') ?? []);
+            if (array_key_exists('contacts', $request->all())) {
+                $this->syncContacts($job, $request->validated('contacts') ?? []);
+            }
             $this->customFields->save($job, $clean);
             if ($datesChanged) {
                 $jobs->syncReservations($job);

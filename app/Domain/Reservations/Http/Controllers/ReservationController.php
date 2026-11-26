@@ -20,8 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class ReservationController extends Controller
 {
@@ -30,7 +29,7 @@ class ReservationController extends Controller
         private readonly CustomFieldService $customFields,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('reservations.reservations.view');
         $filters = $request->validate([
@@ -85,7 +84,7 @@ class ReservationController extends Controller
                 ->paginate(25)->withQueryString()->through(fn (Reservation $r) => $this->row($r));
         }
 
-        return Inertia::render('Reservations/Index', [
+        return view('reservations.index', [
             'reservations' => $reservations,
             'timeline' => $timeline,
             'view' => $view,
@@ -94,7 +93,7 @@ class ReservationController extends Controller
         ]);
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request): View
     {
         Gate::authorize('reservations.reservations.create');
         $defaults = $request->validate([
@@ -104,7 +103,7 @@ class ReservationController extends Controller
         $product = isset($defaults['product_id']) ? Product::query()->find($defaults['product_id']) : null;
         $job = isset($defaults['job_id']) ? \App\Domain\Jobs\Models\ProductionJob::query()->find($defaults['job_id']) : null;
 
-        return Inertia::render('Reservations/Form', [
+        return view('reservations.form', [
             'reservation' => null,
             'defaults' => [
                 'product_id' => $product?->id,
@@ -128,7 +127,7 @@ class ReservationController extends Controller
         return redirect()->route('reservations.show', $reservation)->with('success', 'Reservation saved.');
     }
 
-    public function show(Request $request, Reservation $reservation): Response
+    public function show(Request $request, Reservation $reservation): View
     {
         Gate::authorize('reservations.reservations.view');
         $reservation->load(['product', 'job:id,number,name,stage', 'creator:id,name']);
@@ -137,7 +136,7 @@ class ReservationController extends Controller
             : null;
         $user = $request->user();
 
-        return Inertia::render('Reservations/Show', [
+        return view('reservations.show', [
             'reservation' => $this->row($reservation) + ['notes' => $reservation->notes],
             'conflict' => $report?->toArray(),
             'customFieldSchema' => $this->customFields->schema('reservation'),
@@ -152,13 +151,13 @@ class ReservationController extends Controller
         ]);
     }
 
-    public function edit(Reservation $reservation): Response
+    public function edit(Reservation $reservation): View
     {
         Gate::authorize('reservations.reservations.edit');
         $this->assertStandalone($reservation);
         $reservation->load(['product:id,name', 'job:id,number,name']);
 
-        return Inertia::render('Reservations/Form', [
+        return view('reservations.form', [
             'reservation' => $this->row($reservation) + ['notes' => $reservation->notes],
             'defaults' => null,
             'statuses' => $this->statusOptions(),

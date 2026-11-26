@@ -6,17 +6,15 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    public function edit(Request $request): Response
+    public function edit(Request $request)
     {
         $user = $request->user();
         $preferences = $user->preferences ?? [];
 
-        return Inertia::render('Account/Profile', [
+        return view('account.profile', [
             'profile' => [
                 'name' => $user->name,
                 'username' => $user->username,

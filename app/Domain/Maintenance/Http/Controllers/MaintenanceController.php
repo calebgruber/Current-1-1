@@ -16,12 +16,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class MaintenanceController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('maintenance.records.view');
         $filters = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'status' => ['nullable', 'string', 'in:'.implode(',', array_column(MaintenanceStatus::cases(), 'value'))]]);
@@ -30,14 +29,14 @@ class MaintenanceController extends Controller
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->latest('id')->paginate(25)->withQueryString();
 
-        return Inertia::render('Maintenance/Index', ['records' => $records, 'filters' => $filters, 'statuses' => $this->statuses()]);
+        return view('maintenance.index', ['records' => $records, 'filters' => $filters, 'statuses' => $this->statuses()]);
     }
 
-    public function create(): Response
+    public function create(): View
     {
         Gate::authorize('maintenance.records.create');
 
-        return Inertia::render('Maintenance/Form', $this->formProps(null));
+        return view('maintenance.form', $this->formProps(null));
     }
 
     public function lookupAsset(Request $request): JsonResponse
@@ -82,19 +81,19 @@ class MaintenanceController extends Controller
         return redirect()->route('maintenance.show', $record)->with('success', 'Maintenance record created.');
     }
 
-    public function show(MaintenanceRecord $record): Response
+    public function show(MaintenanceRecord $record): View
     {
         Gate::authorize('maintenance.records.view');
         $record->load(['product:id,name', 'asset:id,asset_number', 'job:id,number,name', 'assignee:id,name', 'reporter:id,name']);
 
-        return Inertia::render('Maintenance/Show', ['record' => $record]);
+        return view('maintenance.show', ['record' => $record]);
     }
 
-    public function edit(MaintenanceRecord $record): Response
+    public function edit(MaintenanceRecord $record): View
     {
         Gate::authorize('maintenance.records.edit');
 
-        return Inertia::render('Maintenance/Form', $this->formProps($record));
+        return view('maintenance.form', $this->formProps($record));
     }
 
     public function update(MaintenanceRequest $request, MaintenanceRecord $record, MaintenanceService $service): RedirectResponse

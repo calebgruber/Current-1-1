@@ -4,7 +4,6 @@ use App\Domain\Authentication\Listeners\RecordPasskeyActivity;
 use App\Domain\Setup\Http\Middleware\PrepareRuntimeConfiguration;
 use App\Http\Middleware\EnforceSecurityPolicy;
 use App\Http\Middleware\EnsureApplicationInstalled;
-use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,7 +21,6 @@ return Application::configure(basePath: dirname(__DIR__))
             PrepareRuntimeConfiguration::class,
             EnsureApplicationInstalled::class,
         ], append: [
-            HandleInertiaRequests::class,
             EnforceSecurityPolicy::class,
         ]);
         $middleware->redirectGuestsTo('/login');

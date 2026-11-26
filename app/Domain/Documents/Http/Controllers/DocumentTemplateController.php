@@ -22,8 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class DocumentTemplateController extends Controller
 {
@@ -34,7 +33,7 @@ class DocumentTemplateController extends Controller
         private readonly CustomFieldService $customFields,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('documents.templates.view');
         $filters = $request->validate([
@@ -65,7 +64,7 @@ class DocumentTemplateController extends Controller
 
         $counts = DocumentTemplate::query()->select('type', DB::raw('count(*) as c'))->groupBy('type')->pluck('c', 'type');
 
-        return Inertia::render('Documents/Templates/Index', [
+        return view('documents.templates.index', [
             'templates' => $templates,
             'types' => collect(DocumentTemplate::TYPES)->map(fn ($label, $key) => [
                 'value' => $key, 'label' => $label, 'count' => (int) ($counts[$key] ?? 0),
@@ -74,7 +73,7 @@ class DocumentTemplateController extends Controller
         ]);
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request): View
     {
         Gate::authorize('documents.templates.create');
         $type = $request->validate(['type' => ['nullable', Rule::in(array_keys(DocumentTemplate::TYPES))]])['type'] ?? 'quotation';
@@ -112,7 +111,7 @@ class DocumentTemplateController extends Controller
         return redirect()->route('documents.templates.edit', $template)->with('success', 'Template created.');
     }
 
-    public function edit(DocumentTemplate $template): Response
+    public function edit(DocumentTemplate $template): View
     {
         Gate::authorize('documents.templates.edit');
 
@@ -306,7 +305,7 @@ class DocumentTemplateController extends Controller
         ];
     }
 
-    private function designer(array $template): Response
+    private function designer(array $template): View
     {
         $variables = $this->contexts->variables();
         foreach (['job' => 'Job custom fields', 'maintenance' => 'Maintenance custom fields'] as $entity => $group) {
@@ -316,7 +315,7 @@ class DocumentTemplateController extends Controller
             }
         }
 
-        return Inertia::render('Documents/Templates/Designer', [
+        return view('documents.templates.designer', [
             'template' => $template,
             'types' => collect(DocumentTemplate::TYPES)->map(fn ($label, $key) => ['value' => $key, 'label' => $label])->values(),
             'blockTypes' => BlockCompiler::TYPES,

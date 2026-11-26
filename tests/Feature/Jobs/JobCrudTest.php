@@ -7,7 +7,6 @@ use App\Domain\Jobs\Models\ProductionJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class JobCrudTest extends TestCase
@@ -22,10 +21,9 @@ class JobCrudTest extends TestCase
         $this->actingAs($this->userWithPermissions(['jobs.jobs.view']))
             ->get('/jobs?stage=quote')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Jobs/Index')
-                ->has('jobs.data', 1)
-                ->where('jobs.data.0.name', 'Macbeth'));
+            ->assertViewIs('jobs.index')
+            ->assertViewHas('jobs', fn ($jobs) => $jobs->total() === 1 && $jobs->items()[0]['name'] === 'Macbeth')
+            ->assertSee('Macbeth');
     }
 
     public function test_board_view_groups_jobs_by_stage(): void
@@ -36,11 +34,9 @@ class JobCrudTest extends TestCase
         $this->actingAs($this->superAdmin())
             ->get('/jobs?view=board')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('view', 'board')
-                ->has('board.draft', 1)
-                ->has('board.prep', 1)
-                ->has('board.quote', 0));
+            ->assertViewIs('jobs.index')
+            ->assertViewHas('view', 'board')
+            ->assertViewHas('board', fn ($board) => count($board['draft']) === 1 && count($board['prep']) === 1 && count($board['quote']) === 0);
     }
 
     public function test_index_requires_permission(): void
@@ -53,7 +49,7 @@ class JobCrudTest extends TestCase
         $user = $this->userWithPermissions(['jobs.jobs.view', 'jobs.jobs.create', 'jobs.jobs.edit', 'jobs.jobs.delete']);
         $contact = Contact::query()->create(['name' => 'Stage Manager', 'type' => 'person']);
 
-        $this->actingAs($user)->get('/jobs/create')->assertOk()->assertInertia(fn (Assert $p) => $p->component('Jobs/Form'));
+        $this->actingAs($user)->get('/jobs/create')->assertOk()->assertViewIs('jobs.form')->assertSee('New job');
 
         $response = $this->actingAs($user)->post('/jobs', [
             'name' => 'The Tempest',
@@ -71,16 +67,17 @@ class JobCrudTest extends TestCase
         $this->assertMatchesRegularExpression('/^J-\d{5}$/', $job->number);
 
         $this->actingAs($user)->get("/jobs/{$job->id}")->assertOk()
-            ->assertInertia(fn (Assert $p) => $p->component('Jobs/Show')
-                ->where('job.number', $job->number)
-                ->has('job.allowed_transitions', 3)
-                ->has('contacts', 1));
+            ->assertViewIs('jobs.show')
+            ->assertViewHas('job', fn ($shownJob) => $shownJob['number'] === $job->number && count($shownJob['allowed_transitions']) === 3)
+            ->assertViewHas('contacts', fn ($contacts) => count($contacts) === 1)
+            ->assertSee($job->number);
 
         $this->actingAs($user)->put("/jobs/{$job->id}", ['name' => 'The Tempest (tour)', 'starts_at' => '2030-03-03 19:00', 'ends_at' => '2030-03-02 19:00'])
             ->assertSessionHasErrors('ends_at');
 
         $this->actingAs($user)->put("/jobs/{$job->id}", ['name' => 'The Tempest (tour)'])->assertRedirect("/jobs/{$job->id}");
         $this->assertSame('The Tempest (tour)', $job->fresh()->name);
+        $this->assertSame('Stage manager', $job->fresh()->contacts()->first()->pivot->role);
 
         $this->actingAs($user)->delete("/jobs/{$job->id}")->assertRedirect('/jobs');
         $this->assertSoftDeleted($job);

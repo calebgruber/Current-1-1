@@ -11,14 +11,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
     public function __construct(private readonly HierarchyOptions $hierarchy) {}
 
-    public function index(): Response
+    public function index(): View
     {
         Gate::authorize('inventory.categories.view');
 
@@ -49,7 +48,7 @@ class CategoryController extends Controller
             ];
         });
 
-        return Inertia::render('Inventory/Categories/Index', $props);
+        return view('inventory.categories.index', $props);
     }
 
     public function store(Request $request): RedirectResponse

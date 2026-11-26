@@ -4,7 +4,6 @@ namespace Tests\Feature\Warehouse;
 
 use App\Domain\Jobs\Models\ProductionJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class WarehouseScreensTest extends TestCase
@@ -17,9 +16,9 @@ class WarehouseScreensTest extends TestCase
         $user = $this->userWithPermissions(['warehouse.picking.view']);
 
         $this->actingAs($user)->get('/warehouse/picking')
-            ->assertOk()->assertInertia(fn (Assert $page) => $page->component('Warehouse/Station')->where('job', null));
+            ->assertOk()->assertViewIs('warehouse.station')->assertViewHas('job', null);
         $this->actingAs($user)->get("/warehouse/picking/{$job->id}")
-            ->assertOk()->assertInertia(fn (Assert $page) => $page->component('Warehouse/Station')->where('job.id', $job->id));
+            ->assertOk()->assertViewIs('warehouse.station')->assertViewHas('job.id', $job->id);
         $this->actingAs($user)->get('/warehouse/picking/999999')->assertNotFound();
         $this->actingAs($user)->get("/warehouse/prep/{$job->id}")->assertForbidden();
     }
@@ -40,7 +39,7 @@ class WarehouseScreensTest extends TestCase
         $job = ProductionJob::factory()->create(['stage' => 'reserved']);
         $user = $this->userWithPermissions(['warehouse.display.view']);
         $this->actingAs($user)->get("/warehouse/display/{$job->id}?mode=damage")
-            ->assertOk()->assertInertia(fn (Assert $page) => $page->component('Warehouse/Display')->where('job.id', $job->id)->where('initialMode', 'pick'));
+            ->assertOk()->assertViewIs('warehouse.display')->assertViewHas('job.id', $job->id)->assertViewHas('initialMode', 'pick');
         $this->actingAs($this->userWithPermissions([]))->get('/warehouse/display')->assertForbidden();
     }
 }

@@ -39,16 +39,51 @@
                 @can('inventory.products.view')
                     <x-side-bar.item text="Inventory" icon="archive-box" :route="route('inventory.products.index')" />
                 @endcan
+                @can('inventory.categories.view')
+                    <x-side-bar.item text="Categories" icon="tag" :route="route('inventory.categories.index')" />
+                @endcan
+                @can('inventory.locations.view')
+                    <x-side-bar.item text="Locations" icon="map-pin" :route="route('inventory.locations.index')" />
+                @endcan
                 @can('assets.assets.view')
                     <x-side-bar.item text="Assets" icon="cube" :route="route('assets.index')" />
                 @endcan
                 @can('maintenance.records.view')
                     <x-side-bar.item text="Maintenance" icon="wrench-screwdriver" :route="route('maintenance.index')" />
                 @endcan
-                @can('warehouse.picking.view')
+                @can('inventory.availability.view')
+                    <x-side-bar.item text="Availability" icon="calendar-days" :route="route('availability.index')" />
+                @endcan
+                @can('reservations.reservations.view')
+                    <x-side-bar.item text="Reservations" icon="calendar" :route="route('reservations.index')" />
+                @endcan
+                @canany(['warehouse.picking.view', 'warehouse.checkout.view'])
                     <x-side-bar.item text="Warehouse" icon="qr-code" :route="route('warehouse.index')" />
+                @endcanany
+                @can('contacts.contacts.view')
+                    <x-side-bar.item text="Contacts" icon="users" :route="route('contacts.index')" />
+                @endcan
+                @can('documents.documents.view')
+                    <x-side-bar.item text="Documents" icon="document-text" :route="route('documents.index')" />
+                @endcan
+                @can('documents.templates.view')
+                    <x-side-bar.item text="Templates" icon="rectangle-stack" :route="route('documents.templates.index')" />
+                @endcan
+                @can('reporting.reports.view')
+                    <x-side-bar.item text="Reports" icon="chart-bar" :route="route('reports.index')" />
+                @endcan
+                @can('rules.rules.view')
+                    <x-side-bar.item text="Rules" icon="adjustments-horizontal" :route="route('rules.index')" />
                 @endcan
                 <x-side-bar.item text="Search" icon="magnifying-glass" :route="route('search.index')" />
+                @can('settings.custom_fields.view')
+                    <x-side-bar.item text="Custom fields" icon="list-bullet" :route="route('settings.custom-fields.index')" />
+                @endcan
+                @can('admin.system.view')
+                    <x-side-bar.item text="System" icon="cog-6-tooth" :route="route('admin.system.index')" />
+                @endcan
+                <x-side-bar.item text="My profile" icon="user" :route="route('account.profile')" />
+                <x-side-bar.item text="Security" icon="shield-check" :route="route('account.security')" />
             </x-side-bar>
         </x-slot:menu>
         <main class="p-4 sm:p-6">

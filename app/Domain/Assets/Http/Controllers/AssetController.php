@@ -26,8 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class AssetController extends Controller
 {
@@ -46,7 +45,7 @@ class AssetController extends Controller
         private readonly AssetRegistrar $registrar,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         Gate::authorize('assets.assets.view');
         $filters = $this->filters($request);
@@ -59,7 +58,7 @@ class AssetController extends Controller
 
         $counts = Asset::query()->selectRaw('status, count(*) as c')->groupBy('status')->pluck('c', 'status');
 
-        return Inertia::render('Assets/Index', [
+        return view('assets.index', [
             'assets' => $assets->through(fn (Asset $a) => [
                 'id' => $a->id,
                 'asset_number' => $a->asset_number,
@@ -101,13 +100,13 @@ class AssetController extends Controller
         ]));
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request): View
     {
         Gate::authorize('assets.assets.create');
         $productId = $request->integer('product') ?: null;
         $product = $productId ? Product::query()->whereKey($productId)->first(['id', 'name', 'sku', 'tracking']) : null;
 
-        return Inertia::render('Assets/Form', $this->formProps(null) + [
+        return view('assets.form', $this->formProps(null) + [
             'defaultProduct' => $product && $product->isSerialized() ? ['value' => $product->id, 'label' => $product->name, 'prefix' => $this->registrar->prefixFor($product, null)] : null,
         ]);
     }
@@ -138,7 +137,7 @@ class AssetController extends Controller
         return redirect()->route('assets.index', ['product' => $product->id])->with('success', "{$count} assets created ({$created[0]->asset_number} – ".end($created)->asset_number.').');
     }
 
-    public function show(Asset $asset, HistoryPresenter $history, LabelRenderer $labels): Response
+    public function show(Asset $asset, HistoryPresenter $history, LabelRenderer $labels): View
     {
         Gate::authorize('assets.assets.view');
         $asset->load(['product:id,name,sku,model,category_id', 'product.category:id,name', 'location']);
@@ -202,7 +201,7 @@ class AssetController extends Controller
 
         $code = $asset->barcode ?: $asset->asset_number;
 
-        return Inertia::render('Assets/Show', [
+        return view('assets.show', [
             'asset' => $this->present($asset) + [
                 'product' => $asset->product ? ['id' => $asset->product->id, 'name' => $asset->product->name, 'sku' => $asset->product->sku, 'model' => $asset->product->model, 'category' => $asset->product->category?->name] : null,
                 'location' => $asset->location ? ['id' => $asset->location->id, 'name' => $asset->location->name, 'path' => $asset->location->path()] : null,
@@ -221,12 +220,12 @@ class AssetController extends Controller
         ]);
     }
 
-    public function edit(Asset $asset): Response
+    public function edit(Asset $asset): View
     {
         Gate::authorize('assets.assets.edit');
         $asset->load('product:id,name');
 
-        return Inertia::render('Assets/Form', $this->formProps($asset) + ['defaultProduct' => null]);
+        return view('assets.form', $this->formProps($asset) + ['defaultProduct' => null]);
     }
 
     public function update(AssetRequest $request, Asset $asset): RedirectResponse
@@ -308,7 +307,7 @@ class AssetController extends Controller
     }
 
     /** Printable labels for assets (?ids[]= or ?product=). */
-    public function labels(Request $request, LabelRenderer $renderer): Response
+    public function labels(Request $request, LabelRenderer $renderer): View
     {
         Gate::authorize('assets.labels.view');
         $data = $request->validate([
@@ -335,7 +334,7 @@ class AssetController extends Controller
             }
         }
 
-        return Inertia::render('Inventory/Labels', [
+        return view('inventory.labels', [
             'title' => 'Asset labels',
             'labels' => $labels,
             'copies' => $copies,

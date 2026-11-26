@@ -6,8 +6,7 @@ use App\Domain\Search\Services\SearchService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\View\View;
 
 class SearchController extends Controller
 {
@@ -29,13 +28,13 @@ class SearchController extends Controller
     }
 
     /** Full-page search results grouped by entity type. */
-    public function index(Request $request): Response
+    public function index(Request $request): View
     {
         $q = (string) $request->string('q');
         $type = $request->string('type')->toString() ?: null;
         $types = $type && isset(SearchService::TYPES[$type]) ? [$type] : [];
 
-        return Inertia::render('Search/Index', [
+        return view('search.index', [
             'q' => $q,
             'type' => $types[0] ?? null,
             'results' => $q !== '' ? $this->search->search($q, $request->user(), $types, 100) : [],
