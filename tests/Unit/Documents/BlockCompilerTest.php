@@ -125,6 +125,33 @@ class BlockCompilerTest extends TestCase
         $this->assertStringContainsString('&#123;&#123;', $source);
     }
 
+    public function test_image_expression_preserves_query_strings_without_double_escaping(): void
+    {
+        $url = 'https://example.test/image?x=1&y=2';
+        foreach (['{{ image.url }}', '{{ image.url | escape }}', '{{ image.url | raw }}'] as $expression) {
+            $source = $this->compileOne(['type' => 'image', 'props' => ['src' => $expression]]);
+            $html = (new HtmlSanitizer)->sanitize($this->renderer->render($source, ['image' => ['url' => $url]]));
+            $document = new \DOMDocument;
+            $document->loadHTML($html);
+            $this->assertSame($url, $document->getElementsByTagName('img')->item(0)->getAttribute('src'), $expression);
+
+            $html = (new HtmlSanitizer)->sanitize($this->renderer->render($source, ['image' => ['url' => 'data:image/png;base64,YQ==" onerror="alert(1)']]));
+            $document = new \DOMDocument;
+            $document->loadHTML($html);
+            $this->assertFalse($document->getElementsByTagName('img')->item(0)->hasAttribute('onerror'), $expression);
+        }
+    }
+
+    public function test_styled_spacer_keeps_height_after_sanitization(): void
+    {
+        $source = $this->compileOne(['type' => 'spacer', 'props' => ['height' => 28], 'style' => ['background' => '#ffffff', 'marginTop' => 5]]);
+        $this->assertSame(1, substr_count($source, 'style='));
+        $html = (new HtmlSanitizer)->sanitize($source);
+        $this->assertStringContainsString('height:28px', $html);
+        $this->assertStringContainsString('background:#ffffff', $html);
+        $this->assertStringContainsString('margin-top:5px', $html);
+    }
+
     public function test_default_items_table_and_render(): void
     {
         $tpl = $this->compileOne(['type' => 'items_table', 'id' => 't']);

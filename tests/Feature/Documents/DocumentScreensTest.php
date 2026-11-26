@@ -70,6 +70,18 @@ class DocumentScreensTest extends TestCase
         $this->assertSame('landscape', $template->orientation);
     }
 
+    public function test_admin_can_change_default_template_type_without_replacing_destination_default(): void
+    {
+        $old = DocumentTemplate::create(['name' => 'Old', 'type' => 'quotation', 'entity_type' => 'job', 'editor' => 'code', 'is_default' => true]);
+        $other = DocumentTemplate::create(['name' => 'Other', 'type' => 'invoice', 'entity_type' => 'job', 'editor' => 'code', 'is_default' => true]);
+        $this->actingAs($this->superAdmin())->put("/documents/templates/{$old->id}", [
+            'name' => 'Old', 'type' => 'invoice', 'entity_type' => 'job', 'editor' => 'code',
+            'html' => 'Hello', 'paper_size' => 'letter', 'orientation' => 'portrait', 'is_default' => false,
+        ])->assertSessionHasNoErrors();
+        $this->assertFalse($old->fresh()->is_default);
+        $this->assertTrue($other->fresh()->is_default);
+    }
+
     public function test_preview_and_compile_require_template_view_permission(): void
     {
         $this->actingAs($this->userWithPermissions(['documents.templates.create']));

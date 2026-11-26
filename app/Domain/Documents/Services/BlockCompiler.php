@@ -35,6 +35,9 @@ final class BlockCompiler
         $type = $b['type'] ?? '';
         $p = $b['props'] ?? [];
         $style = $this->style($b['style'] ?? []);
+        if ($type === 'spacer') {
+            $style .= ($style !== '' ? ';' : '').'height:'.max(0, (int) ($p['height'] ?? 16)).'px';
+        }
         $attrs = 'class="st-block st-'.$this->attr($type).'" data-block="'.$this->attr((string) ($b['id'] ?? '')).'"'.($style ? ' style="'.$style.'"' : '');
 
         return match ($type) {
@@ -46,7 +49,7 @@ final class BlockCompiler
             'items_table' => $this->itemsTable($attrs, $p),
             'totals' => $this->totals($attrs, $p),
             'signature' => $this->signature($attrs, $p),
-            'spacer' => sprintf('<div %s style="height:%dpx"></div>', $attrs, max(0, (int) ($p['height'] ?? 16))),
+            'spacer' => sprintf('<div %s></div>', $attrs),
             'divider' => sprintf('<hr %s>', $attrs),
             'page_break' => '<div class="st-page-break" style="page-break-after:always"></div>',
             'columns' => $this->columns($attrs, $p),
@@ -206,8 +209,7 @@ final class BlockCompiler
     private function imageSource(string $src): string
     {
         if (preg_match('/^\{\{([^{}]*)\}\}$/s', $src, $matches)) {
-            // Escape even a value marked raw before it reaches the HTML attribute.
-            return '{{ '.$this->expr($matches[1]).' | escape }}';
+            return '{{ '.$this->expr($matches[1]).' | escape_attr }}';
         }
 
         return $this->attr($src);

@@ -29,7 +29,7 @@ final class TemplateRenderer
 
     public const MAX_OUTPUT = 5_000_000;
 
-    public const FILTERS = ['currency', 'number', 'date', 'upper', 'lower', 'title', 'default', 'nl2br', 'raw', 'escape', 'round', 'join', 'length', 'abs', 'truncate', 'percent', 'yesno'];
+    public const FILTERS = ['currency', 'number', 'date', 'upper', 'lower', 'title', 'default', 'nl2br', 'raw', 'escape', 'escape_attr', 'round', 'join', 'length', 'abs', 'truncate', 'percent', 'yesno'];
 
     public const FUNCTIONS = ['sum', 'count', 'round', 'min', 'max', 'now', 'concat', 'avg', 'ceil', 'floor'];
 
@@ -347,6 +347,8 @@ final class TemplateRenderer
         return match (strtolower($name)) {
             'raw' => new SafeString($this->plain($value) ?? ''),
             'escape' => new SafeString(htmlspecialchars((string) $plain, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')),
+            // SafeString may contain escaped entities or raw markup; normalize before attribute escaping.
+            'escape_attr' => new SafeString(htmlspecialchars($value instanceof SafeString ? html_entity_decode((string) $plain, ENT_QUOTES | ENT_HTML5, 'UTF-8') : (string) $plain, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')),
             'nl2br' => new SafeString(nl2br(htmlspecialchars((string) $plain, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'))),
             'upper' => mb_strtoupper((string) $plain),
             'lower' => mb_strtolower((string) $plain),

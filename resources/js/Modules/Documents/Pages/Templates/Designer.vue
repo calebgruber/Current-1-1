@@ -81,6 +81,9 @@ watch(() => JSON.stringify(draft.value), () => {
     const current = revision;
     timer = setTimeout(() => preview(current), 500);
 }, { immediate: true });
+watch(() => form.type, type => {
+    if (props.template.is_default && type === props.template.type) form.is_default = true;
+});
 onBeforeUnmount(() => { revision++; controller?.abort(); clearTimeout(timer); });
 
 function setMargin(side: string, value: string) {
@@ -134,8 +137,9 @@ function save() {
                     <label class="mt-2 block text-sm">Name<input v-model="form.name" required maxlength="255" class="designer-input"></label>
                     <label class="mt-2 block text-sm">Type<select v-model="form.type" class="designer-input"><option v-for="t in types" :key="t.value" :value="t.value">{{ t.label }}</option></select></label>
                     <label class="mt-2 block text-sm">Record type<select v-model="form.entity_type" class="designer-input"><option value="job">Job</option><option value="maintenance">Maintenance</option></select></label>
-                    <label v-if="canAdmin" class="mt-2 block text-sm"><input v-model="form.is_default" type="checkbox" :disabled="template.is_default"> Make default for this type</label>
-                    <p v-if="canAdmin && template.is_default" class="mt-1 text-xs text-muted">To replace this default, select another template as the default.</p>
+                    <label v-if="canAdmin" class="mt-2 block text-sm"><input v-model="form.is_default" type="checkbox" :disabled="template.is_default && form.type === template.type"> Make default for this type</label>
+                    <p v-if="canAdmin && template.is_default && form.type === template.type" class="mt-1 text-xs text-muted">To replace this default, select another template as the default.</p>
+                    <p v-else-if="canAdmin && template.is_default" class="mt-1 text-xs text-muted">Changing type removes this template as the old default. If checked, it also replaces the new type's default; uncheck to leave that default unchanged.</p>
                 </div>
                 <div class="border-t border-line pt-4">
                     <h2 class="font-semibold">Page setup</h2>
@@ -171,7 +175,7 @@ function save() {
         </section>
         <section class="designer-preview st-card" aria-label="Document preview">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
-                <div><h2 class="font-semibold">Page preview</h2><p class="text-xs text-muted">Sample data · first page only; PDF pagination may differ</p></div>
+                <div><h2 class="font-semibold">Page preview</h2><p class="text-xs text-muted">Sample data · screen preview is not paginated; content may be clipped and page breaks are not shown.</p></div>
                 <label class="flex items-center gap-2 text-sm">Zoom <input v-model.number="zoom" type="range" min="25" max="150" step="5" aria-label="Preview zoom"><span class="w-10">{{ zoom }}%</span></label>
             </div>
             <div class="designer-canvas">
