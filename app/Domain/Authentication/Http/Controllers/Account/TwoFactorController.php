@@ -58,8 +58,13 @@ class TwoFactorController extends Controller
     public function disable(Request $request, SecurityPolicy $policy): RedirectResponse
     {
         $user = $request->user();
-        if ($policy->requiresTwoFactor($user) && $user->hasTwoFactorEnabled() && $user->passkeys()->doesntExist()) {
-            return back()->with('error', 'Your organization requires two-factor authentication. Add a passkey before removing your authenticator app.');
+        if ($policy->requiresTwoFactor($user) && $user->hasTwoFactorEnabled()
+            && (! $policy->passkeysAllowed() || $user->passkeys()->doesntExist())) {
+            $message = $policy->passkeysAllowed()
+                ? 'Your organization requires two-factor authentication. Add a passkey before removing your authenticator app.'
+                : 'Your organization requires two-factor authentication, and passkeys are disabled.';
+
+            return back()->with('error', $message);
         }
 
         $this->twoFactor->disable($user);

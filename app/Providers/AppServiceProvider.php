@@ -94,7 +94,9 @@ class AppServiceProvider extends ServiceProvider
             }
             $user->forceFill(['last_login_at' => now(), 'last_login_ip' => $request->ip(), 'failed_login_attempts' => 0])->saveQuietly();
             AuditLog::record('login.passkey', $user, [], [], 'Signed in with passkey "'.$passkey->name.'"', $user->id);
-            $request->attributes->set('verified_login_passkey', $passkey);
+            // The package passes a FormRequest, while the login event sees the
+            // container's original request. Their attribute bags are distinct.
+            request()->attributes->set('verified_login_passkey', $passkey);
 
             return true;
         });

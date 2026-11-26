@@ -44,6 +44,8 @@ Node.js is **not** required on the server: release packages contain prebuilt ass
 
 `EnsureApplicationInstalled` redirects every request to `/setup` until `storage/app/installed.lock` exists. After installation `/setup` returns **404**.
 
+Restrict access to the site while setting up: the wizard is unauthenticated until installation is finished, and concurrent setup sessions are not coordinated. Use only one browser session and complete setup without interruption. An existing or soft-deleted administrator cannot be replaced through setup. If that session is lost after creating the administrator but before finishing, restore a known-good installation or restart with a fresh database; the wizard cannot recover that session.
+
 | Step | What happens |
 |---|---|
 | 1. Requirements | Checks PHP version, required extensions, writable `storage/`, `bootstrap/cache/`, `.env`. Blocking failures must be fixed before continuing. |

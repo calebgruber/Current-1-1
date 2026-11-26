@@ -69,8 +69,8 @@ const submitAdmin = () => admin.post(route('setup.admin'), { onFinish: () => adm
             <Button class="mt-4" variant="primary" @click="router.post(route('setup.install'))">Run installation</Button>
         </Card>
         <Card v-else-if="current === 'admin'" title="Administrator account">
-            <p v-if="hasAdministrator" class="mb-3 text-sm text-muted">An administrator already exists. Enter the details for the initial administrator.</p>
-            <form class="space-y-4" @submit.prevent="submitAdmin">
+            <p v-if="hasAdministrator" class="mb-3 text-sm text-red-600">An administrator already exists. Setup cannot create or change an administrator in this database.</p>
+            <form v-else class="space-y-4" @submit.prevent="submitAdmin">
                 <FormField label="Name" for="admin-name" :error="admin.errors.name" required><TextInput id="admin-name" v-model="admin.name" required /></FormField>
                 <FormField label="Username" for="admin-username" :error="admin.errors.username"><TextInput id="admin-username" v-model="admin.username" /></FormField>
                 <FormField label="Email" for="admin-email" :error="admin.errors.email" required><TextInput id="admin-email" v-model="admin.email" type="email" required /></FormField>

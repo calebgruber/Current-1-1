@@ -253,7 +253,7 @@ Removing an entry from the catalog does not silently drop grants from roles unti
 | Write off damaged equipment from the warehouse damage queue | `warehouse.damage.approve` |
 | Close / write off a maintenance record | `maintenance.records.approve` |
 | Bulk stock adjustments | `inventory.stock.approve` |
-| Run / roll back migrations, clear caches | `admin.system.admin` |
+| Clear config, route, or compiled view caches | `admin.system.admin` (viewing the system page requires `admin.system.view`) |
 | Restore a backup | `admin.backups.admin` |
 | Upload & apply an update | `admin.updates.admin` |
 | Edit code-mode templates / raw `html` blocks | `documents.templates.admin` |

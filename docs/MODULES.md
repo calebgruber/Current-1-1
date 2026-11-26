@@ -190,6 +190,14 @@ Accessory math (`PullSheetBuilder::accessoryQuantities`): active = `ceil(per_uni
 
 Models `MaintenanceRecord` (number `MR-00001`). Pages `Maintenance/Index`, `Maintenance/Show`, `Maintenance/Form`. Permissions `maintenance.records.*` (`approve` = close / write off a record).
 
+The maintenance screens create and edit records, filter the list and show details. Product, asset and quantity are fixed after creation. For serialized stock, opening work on an available asset marks it in maintenance; an already damaged asset stays damaged. Completing the last active record returns a maintenance or damaged asset to available; writing off requires all other active records to be resolved and retires the asset. Other asset states are not overwritten on completion. Closing, writing off or reopening a closed record requires `maintenance.records.approve`; written-off records cannot be reopened. Status changes are recorded in asset history.
+
+References use a database-serialized sequence initialized above existing numeric references. Existing records linked to soft-deleted products or assets can still be closed, but cannot be reopened while those items remain deleted. A deleted asset's status is not changed on closure; review its status before restoring it.
+
+Assets with active maintenance cannot be reassigned to another product or manually marked available, allocated, checked out or retired. Existing records whose asset was previously reassigned can still be closed, but cannot be reopened against the old product. Warehouse scans and damage reports check the asset's locked current state; retired assets cannot be reported as damaged.
+
+Bulk records do not change stock-level counters: records have no stock-location or counter provenance, including records from warehouse damage reports. Adjust bulk maintenance/damage quantities separately in inventory when work begins or ends.
+
 ### Rules
 
 **Responsibility.** No-code validation rules evaluated against a job's allocations, plus built-in accessory completeness.
@@ -268,7 +276,13 @@ Services `Totp`† (RFC 6238: `generateSecret`, `code`, `verify` with window + r
 
 ### Administration
 
-Users, roles & permissions, audit log, setup wizard, and the no-CLI operations area:
+The implemented system page (`admin.system.index`) exposes read-only default database connectivity,
+storage-directory writability, and migration status (default database and registered migration paths)
+to `admin.system.view`. `admin.system.admin` can clear only generated config, route, and compiled
+view caches via authenticated POST requests; each attempt is audited. Clearing config or route
+caches may require deployment to rebuild them. The application cache store is not flushed.
+The checks do not establish queue, scheduler, backup, or individual storage-disk health.
+The following describes the remaining planned no-CLI operations, not implemented functionality:
 
 | Service | Purpose |
 |---|---|

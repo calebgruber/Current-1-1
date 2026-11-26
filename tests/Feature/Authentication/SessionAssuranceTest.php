@@ -6,8 +6,8 @@ use App\Domain\Authentication\Services\RecoveryCodes;
 use App\Domain\Authentication\Services\Totp;
 use App\Domain\Settings\Services\SettingsRepository;
 use App\Models\User;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -79,6 +79,7 @@ class SessionAssuranceTest extends TestCase
         $this->get('/')->assertOk();
 
         $user->forceFill(['two_factor_secret' => null, 'two_factor_confirmed_at' => null])->save();
+        Auth::forgetGuards();
         $this->get('/')->assertRedirect(route('account.security'));
     }
 
@@ -102,7 +103,7 @@ class SessionAssuranceTest extends TestCase
 
         // Stand in for the package's already-verified assertion, then use its real
         // authorization callback and the same guard login sequence as its controller.
-        Route::middleware('web')->post('/test-verified-passkey', function (Request $request) use ($id) {
+        Route::middleware('web')->post('/test-verified-passkey', function (VerifiedPasskeyRequest $request) use ($id) {
             $passkey = Passkeys::passkeyModel()::findOrFail($id);
             abort_unless(Passkeys::allowsLogin($request, $passkey), 403);
             Auth::guard('web')->login($passkey->user);
@@ -162,5 +163,36 @@ class SessionAssuranceTest extends TestCase
 
         app(SettingsRepository::class)->set('security.allow_passkeys', false);
         $this->get('/')->assertRedirect(route('account.security'));
+    }
+
+    public function test_disabling_totp_is_rejected_if_the_only_passkey_is_disabled_by_policy(): void
+    {
+        $user = $this->admin();
+        $this->addPasskey($user);
+        $user->forceFill([
+            'two_factor_secret' => 'JBSWY3DPEHPK3PXP',
+            'two_factor_confirmed_at' => now(),
+        ])->save();
+        app(SettingsRepository::class)->set('security.allow_passkeys', false);
+
+        $this->actingAs($user)->withSession([
+            'auth.password_confirmed_at' => time(),
+            'auth.second_factor' => [
+                'user' => (string) $user->id,
+                'method' => 'totp',
+                'secret_hash' => hash('sha256', $user->two_factor_secret),
+            ],
+        ])->delete(route('account.security.two-factor.disable'))
+            ->assertSessionHas('error');
+
+        $this->assertTrue($user->fresh()->hasTwoFactorEnabled());
+    }
+}
+
+class VerifiedPasskeyRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [];
     }
 }

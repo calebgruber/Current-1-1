@@ -10,6 +10,7 @@ use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use PDO;
 use Throwable;
 
@@ -146,7 +147,24 @@ class Installer
     /** @param array{name: string, email: string, username?: ?string, password: string} $data */
     public function createAdministrator(array $data): User
     {
-        $user = User::query()->where('email', $data['email'])->first() ?? new User;
+        if (User::withTrashed()->where('is_super_admin', true)->exists()) {
+            throw ValidationException::withMessages([
+                'email' => 'An administrator already exists. Setup cannot create another administrator.',
+            ]);
+        }
+
+        if (User::withTrashed()->where('email', $data['email'])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => 'This email is already in use. Choose a new account.',
+            ]);
+        }
+        if (! empty($data['username']) && User::withTrashed()->where('username', $data['username'])->exists()) {
+            throw ValidationException::withMessages([
+                'username' => 'This username is already in use. Choose a new account.',
+            ]);
+        }
+
+        $user = new User;
         $user->fill([
             'name' => $data['name'],
             'username' => $data['username'] ?? null,
@@ -166,7 +184,7 @@ class Installer
     public function hasAdministrator(): bool
     {
         try {
-            return User::query()->where('is_super_admin', true)->exists();
+            return User::withTrashed()->where('is_super_admin', true)->exists();
         } catch (Throwable) {
             return false;
         }

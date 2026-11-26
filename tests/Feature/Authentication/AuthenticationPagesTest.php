@@ -49,4 +49,22 @@ class AuthenticationPagesTest extends TestCase
         $this->get(route('password.confirm'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('Auth/ConfirmPassword'));
     }
+
+    public function test_passkey_browser_endpoints_return_the_expected_options_envelope(): void
+    {
+        config(['passkeys.relying_party_id' => 'localhost', 'passkeys.user_handle_secret' => 'test-handle-secret']);
+
+        $this->getJson('/passkeys/login/options')->assertOk()
+            ->assertJsonStructure(['options' => ['challenge', 'rpId', 'userVerification', 'allowCredentials']])
+            ->assertJsonPath('options.userVerification', 'required');
+        $this->postJson('/passkeys/login', ['credential' => [], 'remember' => false])
+            ->assertUnprocessable()->assertJsonValidationErrors(['credential']);
+
+        $this->actingAs(User::factory()->create())->withSession(['auth.password_confirmed_at' => time()])
+            ->getJson('/user/passkeys/options')->assertOk()
+            ->assertJsonStructure(['options' => ['challenge', 'rp', 'user', 'pubKeyCredParams', 'authenticatorSelection']])
+            ->assertJsonPath('options.authenticatorSelection.userVerification', 'required');
+        $this->postJson('/user/passkeys', ['name' => 'Test', 'credential' => []])
+            ->assertUnprocessable()->assertJsonValidationErrors(['credential']);
+    }
 }

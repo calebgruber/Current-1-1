@@ -75,7 +75,7 @@ export const navigation: NavSection[] = [
             { label: 'Users', route: 'admin.users.index', icon: Users, permissions: ['admin.users.view'], match: 'admin.users' },
             { label: 'Roles', route: 'admin.roles.index', icon: Scale, permissions: ['admin.roles.view'], match: 'admin.roles' },
             { label: 'Audit log', route: 'admin.audit.index', icon: ClipboardCheck, permissions: ['admin.audit.view'], match: 'admin.audit' },
-            { label: 'System', route: 'admin.system.index', icon: Gauge, permissions: ['admin.system.view', 'admin.backups.view', 'admin.logs.view', 'admin.updates.view'], match: 'admin.system' },
+            { label: 'System', route: 'admin.system.index', icon: Gauge, permissions: ['admin.system.view'], match: 'admin.system' },
         ],
     },
 ];

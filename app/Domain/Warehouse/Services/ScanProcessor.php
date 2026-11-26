@@ -55,6 +55,9 @@ final class ScanProcessor
             if ($match['status'] === 'damaged') {
                 return ScanResult::warning('Already damaged', "{$match['asset_number']} is already marked damaged.", [], null, $item);
             }
+            if ($match['status'] === 'retired') {
+                return ScanResult::error('Retired asset', "{$match['asset_number']} is retired and cannot be reported as damaged.", $item);
+            }
 
             return new ScanResult(ScanResult::WARNING, 'Damage logged', "{$match['asset_number']} marked damaged and sent to maintenance.", [
                 ['type' => 'asset_status', 'asset_id' => $match['asset_id'], 'status' => 'damaged'],

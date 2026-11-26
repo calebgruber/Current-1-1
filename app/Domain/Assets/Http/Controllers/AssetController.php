@@ -236,6 +236,11 @@ class AssetController extends Controller
         $locationId = isset($data['location_id']) ? (int) $data['location_id'] : null;
 
         DB::transaction(function () use ($asset, $data, $clean, $locationId, $request) {
+            $asset = Asset::query()->lockForUpdate()->findOrFail($asset->id);
+            if ((int) $data['product_id'] !== $asset->product_id
+                && $asset->maintenanceRecords()->active()->lockForUpdate()->first(['id'])) {
+                throw ValidationException::withMessages(['product_id' => 'This asset has active maintenance records and cannot be reassigned.']);
+            }
             $asset->fill(collect($data)->only([
                 'product_id', 'asset_number', 'serial_number', 'barcode', 'condition', 'purchased_at', 'purchase_cost', 'warranty_expires_at', 'notes',
             ])->all())->save();
@@ -256,14 +261,21 @@ class AssetController extends Controller
         ]);
         $status = AssetStatus::from($data['status']);
 
-        if (in_array($status, self::APPROVAL_STATUSES, true) || in_array($asset->status, self::APPROVAL_STATUSES, true)) {
-            Gate::authorize('assets.status.approve');
-        }
-        if (in_array($status, self::WORKFLOW_STATUSES, true) && $status !== $asset->status) {
-            Gate::authorize('assets.assets.admin');
-        }
+        DB::transaction(function () use ($asset, $status, $request, $data) {
+            $asset = Asset::query()->lockForUpdate()->findOrFail($asset->id);
+            if (in_array($status, self::APPROVAL_STATUSES, true) || in_array($asset->status, self::APPROVAL_STATUSES, true)) {
+                Gate::authorize('assets.status.approve');
+            }
+            if (in_array($status, self::WORKFLOW_STATUSES, true) && $status !== $asset->status) {
+                Gate::authorize('assets.assets.admin');
+            }
+            if (in_array($status, [AssetStatus::Available, AssetStatus::Allocated, AssetStatus::CheckedOut, AssetStatus::Retired], true)
+                && $asset->maintenanceRecords()->active()->lockForUpdate()->first(['id'])) {
+                throw ValidationException::withMessages(['status' => 'Resolve this asset’s active maintenance records before changing to this status.']);
+            }
 
-        $this->assetService->changeStatus($asset, $status, null, $request->user()->id, $data['notes'] ?? null, isset($data['location_id']) ? (int) $data['location_id'] : null);
+            $this->assetService->changeStatus($asset, $status, null, $request->user()->id, $data['notes'] ?? null, isset($data['location_id']) ? (int) $data['location_id'] : null);
+        });
 
         return back()->with('success', 'Status changed to '.$status->label().'.');
     }

@@ -17,6 +17,7 @@ use App\Domain\Reservations\Services\ConflictDetector;
 use App\Domain\Settings\Services\SettingsRepository;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class JobService
@@ -76,6 +77,7 @@ class JobService
             $item->save();
 
             if ($item->wasChanged(['required_quantity', 'spare_quantity'])) {
+                $this->assertQuantityFitsProgress($item);
                 $perUnit = $item->product->accessories()->where('auto_add', true)->pluck('quantity', 'accessory_product_id');
                 foreach ($item->children as $child) {
                     if (! isset($perUnit[$child->product_id])) {
@@ -83,6 +85,7 @@ class JobService
                     }
                     $q = PullSheetBuilder::accessoryQuantities((float) $perUnit[$child->product_id], $item->required_quantity, $item->spare_quantity);
                     $child->update(['required_quantity' => $q['required'], 'spare_quantity' => $q['spare']]);
+                    $this->assertQuantityFitsProgress($child);
                 }
             }
 
@@ -90,6 +93,17 @@ class JobService
 
             return $item->fresh();
         });
+    }
+
+    private function assertQuantityFitsProgress(JobItem $item): void
+    {
+        $assets = $item->assignedAssets()->get();
+        if ($item->pull_quantity < max($item->picked_quantity, $item->checked_out_quantity, $item->returned_quantity, $assets->count())
+            || $item->spare_quantity < $assets->where('role', 'spare')->count()) {
+            throw ValidationException::withMessages([
+                'item' => 'The allocation or an accessory has picked equipment or assigned assets exceeding the new quantities. Update those first.',
+            ]);
+        }
     }
 
     public function removeItem(JobItem $item): void

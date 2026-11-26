@@ -94,15 +94,26 @@ class WarehouseService
 
         return DB::transaction(function () use ($mode, $code, $job, $user, $quantity, $station) {
             $match = $this->resolve($code);
+            $lockedAsset = null;
             if ($match && $match['kind'] === 'asset') {
-                // lock to avoid two scanners grabbing the same unit concurrently
-                Asset::query()->whereKey($match['asset_id'])->lockForUpdate()->first();
+                $scanCode = trim($code);
+                $lockedAsset = Asset::query()->whereKey($match['asset_id'])
+                    ->where(fn ($q) => $q->where('barcode', $scanCode)->orWhere('asset_number', $scanCode)->orWhere('serial_number', $scanCode))
+                    ->lockForUpdate()->first();
+                if (! $lockedAsset) {
+                    $match = null;
+                } else {
+                    $match['asset_number'] = $lockedAsset->asset_number;
+                    $match['product_id'] = $lockedAsset->product_id;
+                    $match['product'] = $lockedAsset->product?->name ?? 'Unknown product';
+                    $match['status'] = $lockedAsset->status->value;
+                }
             }
             $lines = $job ? $this->lines($job) : [];
             $result = $this->processor->process($mode, $code, $match, $lines, $quantity);
 
             foreach ($result->effects as $effect) {
-                $this->apply($effect, $job, $user);
+                $this->apply($effect, $job, $user, $lockedAsset);
             }
 
             $this->log($mode, $code, $result, $job, $match, $user, ($match['kind'] ?? null) === 'asset' ? 1 : $quantity, $station);
@@ -111,7 +122,7 @@ class WarehouseService
         });
     }
 
-    private function apply(array $effect, ?ProductionJob $job, ?User $user): void
+    private function apply(array $effect, ?ProductionJob $job, ?User $user, ?Asset $lockedAsset): void
     {
         switch ($effect['type']) {
             case 'increment':
@@ -134,9 +145,8 @@ class WarehouseService
                 $assignment->save();
                 break;
             case 'asset_status':
-                $asset = Asset::query()->find($effect['asset_id']);
-                if ($asset) {
-                    $this->assets->changeStatus($asset, AssetStatus::from($effect['status']), $job, $user?->id, 'Warehouse scan');
+                if ($lockedAsset && $lockedAsset->id === $effect['asset_id']) {
+                    $this->assets->changeStatus($lockedAsset, AssetStatus::from($effect['status']), $job, $user?->id, 'Warehouse scan');
                 }
                 break;
             case 'create_maintenance':

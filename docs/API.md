@@ -153,13 +153,14 @@ These routes are registered by the `laravel/passkeys` package and used unchanged
 `Passkeys::authorizeLoginUsing` (AppServiceProvider) rejects inactive users, and rejects everyone when `security.allow_passkeys` is off. On success it updates the login timestamp and IP and writes the `login.passkey` audit event.
 
 ```json
-// GET /passkeys/login/options → 200 (PublicKeyCredentialRequestOptions)
-{ "challenge": "q0bN0…", "rpId": "stagetrack.example.edu", "timeout": 60000,
-  "userVerification": "preferred", "allowCredentials": [] }
+// GET /passkeys/login/options → 200
+{ "options": { "challenge": "q0bN0…", "rpId": "stagetrack.example.edu", "timeout": 60000,
+  "userVerification": "required", "allowCredentials": [] } }
 
 // POST /passkeys/login
-{ "id": "AXk…", "rawId": "AXk…", "type": "public-key",
-  "response": { "clientDataJSON": "…", "authenticatorData": "…", "signature": "…", "userHandle": "…" } }
+{ "credential": { "id": "AXk…", "rawId": "AXk…", "type": "public-key",
+  "response": { "clientDataJSON": "…", "authenticatorData": "…", "signature": "…", "userHandle": "…" } },
+  "remember": false }
 // → 200 { "redirect": "/" }      422 { "message": "This passkey is not valid." }
 ```
 

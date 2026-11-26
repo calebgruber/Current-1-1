@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class DamageController extends Controller
 {
@@ -46,76 +47,84 @@ class DamageController extends Controller
 
         $user = $request->user();
         $job = isset($data['job_id']) ? ProductionJob::query()->find($data['job_id']) : null;
-        $asset = isset($data['asset_id']) ? Asset::query()->with('product')->find($data['asset_id']) : null;
-        $product = $asset?->product ?? Product::query()->find($data['product_id']);
-
-        if ($asset && $asset->status === AssetStatus::Retired) {
-            throw ValidationException::withMessages(['asset_id' => "{$asset->asset_number} is retired."]);
-        }
-        if (! $asset && $product?->isSerialized()) {
-            throw ValidationException::withMessages(['product_id' => 'This product is serialized — scan or choose the individual asset.']);
-        }
-
         $stored = [];
-        foreach ($request->file('photos', []) as $photo) {
-            $folder = $asset ? "condition-reports/assets/{$asset->id}" : "condition-reports/products/{$product->id}";
-            $stored[] = $photo->storeAs($folder, Str::uuid().'.'.strtolower($photo->guessExtension() ?: 'jpg'), 'local');
-        }
+        try {
+            $record = DB::transaction(function () use ($data, $user, $job, $request, &$stored, $assets) {
+                $asset = isset($data['asset_id']) ? Asset::query()->lockForUpdate()->find($data['asset_id']) : null;
+                if (isset($data['asset_id']) && ! $asset) {
+                    throw ValidationException::withMessages(['asset_id' => 'This asset is no longer available.']);
+                }
+                if ($asset && $asset->status === AssetStatus::Retired) {
+                    throw ValidationException::withMessages(['asset_id' => "{$asset->asset_number} is retired."]);
+                }
+                $product = $asset ? Product::query()->find($asset->product_id) : Product::query()->find($data['product_id']);
+                if (! $product) {
+                    throw ValidationException::withMessages(['product_id' => 'This product is no longer available.']);
+                }
+                if (! $asset && $product->isSerialized()) {
+                    throw ValidationException::withMessages(['product_id' => 'This product is serialized — scan or choose the individual asset.']);
+                }
+                foreach ($request->file('photos', []) as $photo) {
+                    $folder = $asset ? "condition-reports/assets/{$asset->id}" : "condition-reports/products/{$product->id}";
+                    $stored[] = $photo->storeAs($folder, Str::uuid().'.'.strtolower($photo->guessExtension() ?: 'jpg'), 'local');
+                }
+                $report = null;
+                $title = $asset ? "Damage: {$asset->asset_number} ({$product->name})" : 'Damage: '.($data['quantity'] ?? 1)." × {$product->name}";
 
-        $record = DB::transaction(function () use ($data, $user, $job, $asset, $product, $stored, $assets) {
-            $report = null;
-            $title = $asset ? "Damage: {$asset->asset_number} ({$product->name})" : 'Damage: '.($data['quantity'] ?? 1)." × {$product->name}";
+                if ($asset) {
+                    $report = ConditionReport::query()->create([
+                        'asset_id' => $asset->id,
+                        'condition' => $data['condition'],
+                        'notes' => $data['notes'],
+                        'photos' => $stored,
+                        'reported_by' => $user->id,
+                    ]);
+                    $asset->forceFill(['condition' => $data['condition'] === 'unusable' ? 'poor' : $data['condition']])->save();
+                    if ($asset->status !== AssetStatus::Damaged) {
+                        $assets->changeStatus($asset, AssetStatus::Damaged, $job, $user->id, 'Damage reported: '.Str::limit($data['notes'], 200));
+                    }
+                    if ($job) {
+                        JobItemAsset::query()->where('asset_id', $asset->id)
+                            ->whereIn('job_item_id', $job->items()->select('id'))
+                            ->update(['status' => 'damaged']);
+                    }
+                } else {
+                    $qty = (int) ($data['quantity'] ?? 1);
+                    $level = StockLevel::query()->where('product_id', $product->id)
+                        ->whereRaw('quantity >= quantity_maintenance + quantity_damaged + quantity_lost + ?', [$qty])
+                        ->orderByDesc('quantity')->first();
+                    if (! $level) {
+                        throw ValidationException::withMessages(['quantity' => "There are not {$qty} serviceable {$product->name} in stock to mark damaged."]);
+                    }
+                    $level->increment('quantity_damaged', $qty);
+                }
 
-            if ($asset) {
-                $report = ConditionReport::query()->create([
-                    'asset_id' => $asset->id,
-                    'condition' => $data['condition'],
-                    'notes' => $data['notes'],
-                    'photos' => $stored,
+                $description = $data['notes'];
+                if ($report) {
+                    $description .= "\n\nCondition report #{$report->id}".($stored ? ' with '.count($stored).' photo(s)' : '').'.';
+                }
+
+                $record = MaintenanceRecord::query()->create([
+                    'product_id' => $product->id,
+                    'asset_id' => $asset?->id,
+                    'quantity' => $asset ? 1 : (int) ($data['quantity'] ?? 1),
+                    'type' => 'damage',
+                    'status' => 'open',
+                    'priority' => $data['priority'],
+                    'title' => Str::limit($title, 250),
+                    'description' => $description,
+                    'job_id' => $job?->id,
                     'reported_by' => $user->id,
                 ]);
-                $asset->forceFill(['condition' => $data['condition'] === 'unusable' ? 'poor' : $data['condition']])->save();
-                if ($asset->status !== AssetStatus::Damaged) {
-                    $assets->changeStatus($asset, AssetStatus::Damaged, $job, $user->id, 'Damage reported: '.Str::limit($data['notes'], 200));
-                }
-                if ($job) {
-                    JobItemAsset::query()->where('asset_id', $asset->id)
-                        ->whereIn('job_item_id', $job->items()->select('id'))
-                        ->update(['status' => 'damaged']);
-                }
-            } else {
-                $qty = (int) ($data['quantity'] ?? 1);
-                $level = StockLevel::query()->where('product_id', $product->id)
-                    ->whereRaw('quantity >= quantity_maintenance + quantity_damaged + quantity_lost + ?', [$qty])
-                    ->orderByDesc('quantity')->first();
-                if (! $level) {
-                    throw ValidationException::withMessages(['quantity' => "There are not {$qty} serviceable {$product->name} in stock to mark damaged."]);
-                }
-                $level->increment('quantity_damaged', $qty);
-            }
 
-            $description = $data['notes'];
-            if ($report) {
-                $description .= "\n\nCondition report #{$report->id}".($stored ? ' with '.count($stored).' photo(s)' : '').'.';
-            }
+                AuditLog::record('warehouse.damage_reported', $asset ?? $product, [], ['maintenance_record_id' => $record->id, 'condition' => $data['condition']], $title, $user->id);
 
-            $record = MaintenanceRecord::query()->create([
-                'product_id' => $product->id,
-                'asset_id' => $asset?->id,
-                'quantity' => $asset ? 1 : (int) ($data['quantity'] ?? 1),
-                'type' => 'damage',
-                'status' => 'open',
-                'priority' => $data['priority'],
-                'title' => Str::limit($title, 250),
-                'description' => $description,
-                'job_id' => $job?->id,
-                'reported_by' => $user->id,
-            ]);
-
-            AuditLog::record('warehouse.damage_reported', $asset ?? $product, [], ['maintenance_record_id' => $record->id, 'condition' => $data['condition']], $title, $user->id);
-
-            return $record;
-        });
+                return $record;
+            });
+        } catch (Throwable $exception) {
+            Storage::disk('local')->delete($stored);
+            throw $exception;
+        }
 
         $message = "Damage logged — maintenance ticket {$record->reference} opened.";
         if ($request->wantsJson()) {
@@ -143,18 +152,19 @@ class DamageController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $assignment = JobItemAsset::query()->where('asset_id', $data['asset_id'])
-            ->whereIn('job_item_id', $job->items()->select('id'))
-            ->where('status', 'checked_out')->first();
-        if (! $assignment) {
-            throw ValidationException::withMessages(['asset_id' => 'That asset is not outstanding on this job.']);
-        }
-
-        DB::transaction(function () use ($assignment, $job, $request, $data, $assets) {
-            $assignment->update(['status' => 'missing']);
-            if ($asset = Asset::query()->find($assignment->asset_id)) {
-                $assets->changeStatus($asset, AssetStatus::Lost, $job, $request->user()->id, 'Missing after return of '.$job->number.(($data['notes'] ?? null) ? ': '.$data['notes'] : ''));
+        DB::transaction(function () use ($job, $request, $data, $assets) {
+            $asset = Asset::query()->lockForUpdate()->find($data['asset_id']);
+            if (! $asset || $asset->status === AssetStatus::Retired) {
+                throw ValidationException::withMessages(['asset_id' => 'This asset is unavailable or retired.']);
             }
+            $assignment = JobItemAsset::query()->where('asset_id', $asset->id)
+                ->whereIn('job_item_id', $job->items()->select('id'))
+                ->where('status', 'checked_out')->lockForUpdate()->first();
+            if (! $assignment) {
+                throw ValidationException::withMessages(['asset_id' => 'That asset is not outstanding on this job.']);
+            }
+            $assignment->update(['status' => 'missing']);
+            $assets->changeStatus($asset, AssetStatus::Lost, $job, $request->user()->id, 'Missing after return of '.$job->number.(($data['notes'] ?? null) ? ': '.$data['notes'] : ''));
         });
 
         $message = 'Marked missing.';
