@@ -67,3 +67,15 @@ export interface ScanResult {
     sound: 'success' | 'warning' | 'error';
     [key: string]: unknown;
 }
+
+export interface CustomFieldSchema {
+    key: string;
+    label: string;
+    type: 'text' | 'long_text' | 'number' | 'currency' | 'date' | 'datetime' | 'checkbox' | 'dropdown' | 'multi_select' | 'file' | 'user' | 'asset' | 'url' | 'relation';
+    group: string | null;
+    help_text: string | null;
+    options: (string | { value: string; label: string })[];
+    validation: Record<string, unknown>;
+    required: boolean;
+    show_in_list: boolean;
+}

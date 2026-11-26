@@ -145,8 +145,8 @@ router.on('navigate', () => (mobileOpen.value = false));
                         <div class="truncate text-xs text-muted">{{ user.email }}</div>
                     </div>
                     <div class="pt-1">
-                        <DropdownItem v-if="route().has('profile.edit')" :href="route('profile.edit')"><UserRound class="size-4" /> Profile</DropdownItem>
-                        <DropdownItem v-if="route().has('profile.security')" :href="route('profile.security')"><ShieldCheck class="size-4" /> Security &amp; passkeys</DropdownItem>
+                        <DropdownItem v-if="route().has('account.profile')" :href="route('account.profile')"><UserRound class="size-4" /> Profile</DropdownItem>
+                        <DropdownItem v-if="route().has('account.security')" :href="route('account.security')"><ShieldCheck class="size-4" /> Security &amp; passkeys</DropdownItem>
                         <DropdownItem v-if="route().has('logout')" :href="route('logout')" method="post"><LogOut class="size-4" /> Sign out</DropdownItem>
                     </div>
                 </Dropdown>
