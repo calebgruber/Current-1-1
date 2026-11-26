@@ -4,7 +4,6 @@ namespace Tests\Feature\Dashboard;
 
 use App\Domain\Jobs\Models\ProductionJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -18,15 +17,15 @@ class DashboardTest extends TestCase
 
     public function test_super_admin_sees_pipeline_and_upcoming_jobs(): void
     {
-        ProductionJob::factory()->create(['starts_at' => now()->addDays(3), 'ends_at' => now()->addDays(5)]);
+        $job = ProductionJob::factory()->create(['starts_at' => now()->addDays(3), 'ends_at' => now()->addDays(5)]);
 
         $this->actingAs($this->superAdmin())
             ->get('/')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Dashboard/Index')
-                ->has('upcoming', 1)
-                ->whereNot('stageCounts', null));
+            ->assertSeeText('Welcome,')
+            ->assertSeeText($job->number)
+            ->assertSeeText($job->name)
+            ->assertSee('aria-label="Job pipeline"');
     }
 
     public function test_sections_are_hidden_without_permission(): void
@@ -34,10 +33,8 @@ class DashboardTest extends TestCase
         $this->actingAs($this->userWithPermissions([]))
             ->get('/')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('stageCounts', null)
-                ->where('upcoming', null)
-                ->where('assetCounts', null)
-                ->where('maintenanceOpen', null));
+            ->assertDontSeeText('Job pipeline')
+            ->assertDontSeeText('Upcoming in the next 3 weeks')
+            ->assertDontSeeText('Open maintenance');
     }
 }
