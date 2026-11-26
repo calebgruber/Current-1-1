@@ -41,8 +41,7 @@ extensions, plus Node.js 22 and npm. From the project root:
 
 ```bash
 composer install
-cp .env.example .env                 # only if .env does not already exist
-php artisan key:generate
+if [ ! -f .env ]; then cp .env.example .env && php artisan key:generate; fi
 npm ci
 npm run build
 php artisan serve
