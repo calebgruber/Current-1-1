@@ -1,0 +1,10 @@
+{
+    "private": true,
+    "scripts": {
+        "assets": "node scripts/copy-assets.mjs"
+    },
+    "devDependencies": {
+        "@tabler/core": "1.7.5",
+        "@tabler/icons-webfont": "3.53.0"
+    }
+}
