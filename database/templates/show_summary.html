@@ -1,0 +1,101 @@
+<style>
+@page { size: letter; margin: 0.5in; }
+.doc { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1b1f24; max-width: 7.5in; margin: 0 auto; padding: 0.25in 0; }
+.doc * { box-sizing: border-box; }
+.doc .hd { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding-bottom: 8px; border-bottom: 2px solid #2b5ea7; margin-bottom: 12px; }
+.doc .shop { font-size: 13pt; font-weight: 700; }
+.doc .sub, .doc .muted { color: #5b6470; font-size: 9pt; }
+.doc .hd-right { text-align: right; }
+.doc h1 { margin: 0; font-size: 18pt; line-height: 1.15; letter-spacing: -0.01em; }
+.doc .ref { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10pt; font-weight: 600; }
+.doc .facts { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #c9ced4; border-radius: 4px; margin-bottom: 14px; }
+.doc .facts > div { padding: 6px 10px; border-right: 1px solid #e1e4e8; min-width: 0; }
+.doc .facts > div:last-child { border-right: 0; }
+.doc .facts b, .doc .label { display: block; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.06em; color: #5b6470; font-weight: 600; }
+.doc h2 { font-size: 11.5pt; margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #c9ced4; }
+.doc h2 .muted { font-weight: 400; }
+.doc p { margin: 0 0 8px; }
+.doc table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+.doc th { text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.05em; color: #5b6470; border-bottom: 1.5px solid #1b1f24; padding: 4px 6px; }
+.doc td { padding: 5px 6px; border-bottom: 1px solid #e1e4e8; vertical-align: top; }
+.doc tbody tr:nth-child(even) td { background: #f4f6f8; }
+.doc .num { text-align: right; white-space: nowrap; width: 1%; font-variant-numeric: tabular-nums; }
+.doc .chk { width: 1%; text-align: center; white-space: nowrap; }
+.doc .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 9pt; }
+.doc .box { display: inline-block; width: 12px; height: 12px; border: 1.5px solid #1b1f24; border-radius: 2px; vertical-align: middle; }
+.doc tr.acc td { color: #5b6470; font-size: 9.5pt; }
+.doc tr.acc .item { padding-left: 22px; }
+.doc tr.empty td { text-align: center; color: #5b6470; font-style: italic; padding: 14px 6px; background: none; }
+.doc .totals { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.doc .totals > div { flex: 1 1 0; border: 1px solid #c9ced4; border-radius: 4px; padding: 6px 10px; }
+.doc .totals strong { display: block; font-size: 15pt; font-variant-numeric: tabular-nums; }
+.doc .note { border-left: 3px solid #2b5ea7; background: #f4f6f8; padding: 8px 12px; margin: 10px 0; }
+.doc .sigs { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; page-break-inside: avoid; break-inside: avoid; }
+.doc .sigs h3 { font-size: 10pt; margin: 0 0 4px; }
+.doc .sigline { border-bottom: 1px solid #1b1f24; height: 28px; }
+.doc .siglabel { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.05em; color: #5b6470; margin-bottom: 4px; }
+.doc .ft { display: flex; justify-content: space-between; gap: 16px; margin-top: 20px; padding-top: 6px; border-top: 1px solid #c9ced4; font-size: 8pt; color: #5b6470; }
+@media print {
+  .doc { max-width: none; padding: 0; font-size: 10pt; }
+  .doc thead { display: table-header-group; }
+  .doc tr, .doc .keep { page-break-inside: avoid; break-inside: avoid; }
+  .doc h2 { page-break-after: avoid; break-after: avoid; }
+  .doc tbody tr:nth-child(even) td, .doc .note { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+<div class="doc doc-show-summary">
+  <header class="hd">
+    <div>
+      <div class="shop">{{ shop.name }}</div>
+      <div class="sub">{{ shop.institution }} · {{ shop.department }}</div>
+    </div>
+    <div class="hd-right">
+      <h1>{{ document.title }}</h1>
+      <div class="ref">{{ show.reference }}</div>
+    </div>
+  </header>
+  <section class="facts">
+    <div><b>Show</b>{{ show.title }}</div>
+    <div><b>Status</b>{{ show.status }}</div>
+    <div><b>Venue</b>{{ show.venue }}</div>
+    <div><b>Department</b>{{ show.department }}</div>
+  </section>
+  <section class="facts" style="grid-template-columns:repeat(5,1fr)">
+    <div><b>Prep</b>{{ show.prep }}</div>
+    <div><b>Out</b>{{ show.out }}</div>
+    <div><b>Opens</b>{{ show.opens }}</div>
+    <div><b>Closes</b>{{ show.closes }}</div>
+    <div><b>Return</b>{{ show.return }}</div>
+  </section>
+  {{#show.notes}}<div class="note"><span class="label">Notes</span>{{ show.notes }}</div>{{/show.notes}}
+  <div class="totals">
+    <div><span class="label">Lines</span><strong>{{ totals.lines }}</strong></div>
+    <div><span class="label">Units</span><strong>{{ totals.units }}</strong></div>
+    <div><span class="label">Cases</span><strong>{{ totals.containers }}</strong></div>
+    <div><span class="label">Sent</span><strong>{{ totals.sent }}</strong></div>
+    <div><span class="label">Returned</span><strong>{{ totals.returned }}</strong></div>
+    <div><span class="label">Outstanding</span><strong>{{ totals.outstanding }}</strong></div>
+  </div>
+  <h2>Team</h2>
+  <table>
+    <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Phone</th></tr></thead>
+    <tbody>
+      {{#contacts}}<tr><td><strong>{{ name }}</strong></td><td>{{ role }}</td><td>{{ email }}</td><td>{{ phone }}</td></tr>{{/contacts}}
+      {{^contacts}}<tr class="empty"><td colspan="4">No contacts have been added yet.</td></tr>{{/contacts}}
+    </tbody>
+  </table>
+  <h2>Equipment</h2>
+  {{#sections}}
+  <table>
+    <thead><tr><th>{{ name }}</th><th class="num">Qty</th></tr></thead>
+    <tbody>
+      {{#lines}}<tr{{#accessory}} class="acc"{{/accessory}}><td class="item">{{#accessory}}↳ {{/accessory}}{{ item }}</td><td class="num">{{ quantity }}</td></tr>{{/lines}}
+    </tbody>
+  </table>
+  {{/sections}}
+  {{^sections}}<table><tbody><tr class="empty"><td>Nothing has been added to the pull list yet.</td></tr></tbody></table>{{/sections}}
+  <footer class="ft">
+    <span>{{ shop.name }} · {{ shop.email }} · {{ shop.phone }}</span>
+    <span>Generated {{ generated.date }} by {{ generated.by }}</span>
+  </footer>
+</div>

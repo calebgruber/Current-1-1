@@ -1,0 +1,11 @@
+# Used when the whole folder is uploaded to cPanel and the domain points at it
+# (instead of at /public). Everything is sent through public/, so source code,
+# the database and uploads can never be downloaded.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(src|views|database|storage|tests|scripts|node_modules|\.git)(/|$) - [F,L]
+    RewriteCond %{REQUEST_URI} !/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+Options -Indexes

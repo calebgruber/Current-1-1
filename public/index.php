@@ -1,20 +1,26 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Http\Request;
+declare(strict_types=1);
 
-define('LARAVEL_START', microtime(true));
+use App\Core\App;
+use App\Core\Request;
+use App\Core\Session;
 
-// Determine if the application is in maintenance mode...
-if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
-    require $maintenance;
-}
+require dirname(__DIR__) . '/src/bootstrap.php';
 
-// Register the Composer autoloader...
-require __DIR__.'/../vendor/autoload.php';
+$config = App::loadConfig();
+date_default_timezone_set($config['timezone'] ?? 'America/New_York');
 
-// Bootstrap Laravel and handle the request...
-/** @var Application $app */
-$app = require_once __DIR__.'/../bootstrap/app.php';
+$secure = (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') === '443');
+session_name('stagetrack_session');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => (Request::detectBasePath() ?: '') . '/',
+    'secure' => $secure,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
+session_start();
 
-$app->handleRequest(Request::capture());
+$app = new App($config, new Session($_SESSION), Request::detectBasePath());
+$app->handle(Request::fromGlobals())->send();
