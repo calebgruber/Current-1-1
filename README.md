@@ -24,6 +24,7 @@
 - **Security.** Sign in with username or email; TOTP 2FA with recovery codes; passkeys (Windows Hello, Touch ID, Face ID, security keys); session management; configurable password, lockout and 2FA policies; and a full audit log.
 - **Roles you define.** About 130 granular capabilities. No roles are hard-coded.
 - **Web administration.** Setup wizard, migrations (run, review, roll back), backups and restore, logs, health, storage, cache and one-click updates, all from the browser.
+- **Colour-coded module interface.** Features are grouped into modules (Home, Jobs, Warehouse, Inventory, Maintenance, Contacts, Documents, Reports, Settings, Account), each with its own colour and icon. The active module shows its pages and primary actions as sub-tabs, which wrap instead of running off the page. Modules and tabs are permission-aware and defined in `app/Support/Navigation/ModuleNavigation.php`. Every page has a light/dark switch and a "thinking" loader during navigation and form submits (add `data-no-loader` to opt a link or form out).
 - **Fast, keyboard-first UX.** ⌘K command palette and global search (exact barcode/serial matches first), `g i` / `g j` / `g w` / `g a` navigation, dark mode, a responsive layout and WCAG 2.2 AA.
 
 ## Quick start
