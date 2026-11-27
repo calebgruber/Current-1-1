@@ -10,7 +10,9 @@
     @livewireStyles
     @vite(['resources/css/app.css'])
 </head>
-<body class="st-form-controls min-h-screen bg-white font-sans antialiased dark:bg-dark-800" x-cloak>
+<body class="st-app st-form-controls min-h-screen font-sans antialiased" x-cloak>
+    @include('layouts.partials.page-loader')
+    <div class="fixed end-4 top-4 z-40 st-icon-btn" title="Toggle light / dark mode"><x-theme-switch simple only-icons /></div>
     <div class="flex min-h-screen flex-col items-center justify-center px-4 py-12">
         <div class="mb-8 flex items-center gap-2 text-lg font-semibold">
             <span class="grid size-8 place-items-center rounded-lg bg-primary-600 text-sm font-bold text-white">ST</span>

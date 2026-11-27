@@ -6,6 +6,7 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.{js,ts,vue}';
+@source '../../app/Support/Navigation/*.php';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -121,7 +122,165 @@
     }
 }
 
-/* Keep native and TallStackUI form controls equally readable, including mobile. */
+/* ---------------------------------------------------------------------------
+ * App shell: colour-coded module rail + module sub-tabs.
+ * Each module sets --mod (hex) inline; everything below derives from it so a
+ * module's colour carries through its rail tile, sub-tabs, actions and page.
+ * ------------------------------------------------------------------------- */
+.st-app {
+    background:
+        radial-gradient(60rem 30rem at 0% -10%, color-mix(in oklab, #6366f1 10%, transparent), transparent),
+        radial-gradient(50rem 25rem at 100% -10%, color-mix(in oklab, #ec4899 8%, transparent), transparent),
+        var(--st-canvas);
+    color: var(--st-ink);
+}
+
+.st-shell {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 96rem;
+    padding-inline: 1rem;
+}
+@media (min-width: 640px) {
+    .st-shell { padding-inline: 1.5rem; }
+}
+
+.st-topbar {
+    border-bottom: 1px solid var(--st-line);
+    background: color-mix(in oklab, var(--st-surface) 88%, transparent);
+    backdrop-filter: blur(8px);
+}
+
+.st-icon-btn {
+    display: inline-grid;
+    place-items: center;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--st-line);
+    background: var(--st-surface);
+    color: var(--st-muted);
+    transition: background-color .15s, color .15s, border-color .15s;
+}
+.st-icon-btn:hover { background: var(--st-hover); color: var(--st-ink); border-color: var(--st-line-strong); }
+
+/* Module rail wraps onto extra rows instead of running off the page. */
+.st-module-rail {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr));
+    gap: 0.5rem;
+}
+.st-module {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 3rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.4rem;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--mod) 25%, var(--st-line));
+    background: color-mix(in oklab, var(--mod) 7%, var(--st-surface));
+    color: color-mix(in oklab, var(--mod) 70%, var(--st-ink));
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: transform .15s, background-color .15s, box-shadow .15s;
+}
+.st-module:hover { background: color-mix(in oklab, var(--mod) 14%, var(--st-surface)); transform: translateY(-1px); }
+.st-module__icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.55rem;
+    background: var(--mod);
+    color: #fff;
+}
+.st-module.is-active {
+    background: var(--mod);
+    border-color: var(--mod);
+    color: #fff;
+    box-shadow: 0 8px 20px -10px var(--mod);
+}
+.st-module.is-active .st-module__icon { background: rgb(255 255 255 / .2); }
+.dark .st-module:not(.is-active) { color: color-mix(in oklab, var(--mod) 45%, #fff); }
+
+.st-subnav {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 3px solid var(--mod);
+    background: color-mix(in oklab, var(--mod) 6%, var(--st-surface));
+}
+.st-subtab, .st-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.55rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background-color .15s, color .15s;
+}
+.st-subtab { color: var(--st-muted); }
+.st-subtab:hover { color: var(--st-ink); background: color-mix(in oklab, var(--mod) 12%, transparent); }
+.st-subtab.is-active { color: #fff; background: var(--mod); }
+.st-action {
+    color: var(--mod);
+    border: 1px dashed color-mix(in oklab, var(--mod) 60%, transparent);
+    background: var(--st-surface);
+}
+.dark .st-action { color: color-mix(in oklab, var(--mod) 55%, #fff); }
+.st-action:hover, .st-action.is-active { color: #fff; background: var(--mod); border-style: solid; }
+
+/* "Thinking" page loader (TallStackUI spinner, thinking variant style). */
+.st-page-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    background: color-mix(in oklab, var(--st-canvas) 55%, transparent);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .2s ease, visibility 0s linear .2s;
+}
+.st-page-loader.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    /* Delay so instant navigations never flash the overlay. */
+    transition: opacity .2s ease .25s, visibility 0s linear .25s;
+}
+.st-page-loader__panel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.4rem;
+    border-radius: 9999px;
+    border: 1px solid var(--st-line);
+    background: var(--st-surface);
+    color: var(--st-ink);
+    box-shadow: 0 20px 40px -20px rgb(0 0 0 / .45);
+    font-weight: 600;
+}
+.st-page-loader__glyph {
+    display: inline-block;
+    width: 1.25em;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--st-accent);
+}
+
+/* ---------------------------------------------------------------------------
+ * Form controls: one clean, readable style for native and TallStackUI fields
+ * in light and dark mode (16px text, 44px min height, visible focus ring).
+ * ------------------------------------------------------------------------- */
 .st-form-controls :where(
     input:not([type='hidden'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='submit'], [type='button'], [type='reset']),
     select,
@@ -132,13 +291,28 @@
     min-width: 0;
     min-height: 2.75rem;
     padding-block: 0.5rem;
-    border-width: 1px;
-    border-style: solid;
-    border-radius: 0.375rem;
+    border: 1px solid var(--st-line-strong);
+    border-radius: 0.6rem;
     background-color: var(--st-surface);
     color: var(--st-ink);
     font-size: 1rem;
     line-height: 1.5;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .04);
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.st-form-controls :where(input, select, textarea)::placeholder {
+    color: var(--st-faint);
+}
+
+.st-form-controls :where(
+    input:not([type='hidden'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='submit'], [type='button'], [type='reset']),
+    select,
+    textarea
+):focus {
+    outline: none;
+    border-color: var(--mod, var(--st-accent));
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--mod, var(--st-accent)) 25%, transparent);
 }
 
 .st-form-controls :where(
@@ -156,8 +330,30 @@
     padding-inline-end: 0.75rem;
 }
 
-.st-form-controls select {
-    padding-inline-end: 2rem;
+/*
+ * TallStackUI inputs draw their frame (ring) on a wrapper and render the field
+ * itself as borderless/transparent ("border-0 bg-transparent"). Keep the larger
+ * text and height but let the wrapper own the border, background and focus ring.
+ */
+.st-form-controls :where(input[class*='border-0'], textarea[class*='border-0'], select[class*='border-0']),
+.st-form-controls :where(input[class*='border-0'], textarea[class*='border-0'], select[class*='border-0']):focus {
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+/* Native selects get a consistent chevron in both themes. */
+.st-form-controls :where(select:not([multiple], [size])) {
+    appearance: none;
+    padding-inline-end: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2371717a'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.1rem;
+}
+.st-form-controls :where(select option) {
+    background-color: var(--st-surface);
+    color: var(--st-ink);
 }
 
 .st-form-controls textarea {
@@ -165,9 +361,64 @@
     resize: vertical;
 }
 
+.st-form-controls :where(input[type='checkbox'], input[type='radio']) {
+    width: 1.15rem;
+    height: 1.15rem;
+    accent-color: var(--mod, var(--st-accent));
+}
+
+.st-form-controls :where(input[type='file']) {
+    font-size: 0.95rem;
+    color: var(--st-muted);
+}
+.st-form-controls :where(input[type='file'])::file-selector-button {
+    margin-inline-end: 0.75rem;
+    padding: 0.5rem 0.9rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: var(--mod, var(--st-accent));
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.st-form-controls :where(label) {
+    color: var(--st-ink);
+}
+
 .st-form-controls :where(input, select, textarea):disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* Raw tables and cards inside pages share the same clean look. */
+.st-app main :where(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.st-app main :where(thead th) {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid color-mix(in oklab, var(--mod, var(--st-accent)) 35%, var(--st-line));
+    color: var(--st-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: start;
+    text-transform: uppercase;
+}
+.st-app main :where(tbody td) {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--st-line);
+    vertical-align: middle;
+}
+.st-app main :where(tbody tr:hover) {
+    background: color-mix(in oklab, var(--mod, var(--st-accent)) 5%, transparent);
+}
+.st-app main :where(h1) {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
 }
 
 @media (prefers-reduced-motion: reduce) {
