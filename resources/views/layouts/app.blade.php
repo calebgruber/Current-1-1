@@ -8,7 +8,7 @@
     <title>{{ config('app.name', 'StageTrack Enterprise') }}</title>
     <tallstackui:script />
     @livewireStyles
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="st-app st-form-controls min-h-screen font-sans antialiased" x-cloak>
     @include('layouts.partials.page-loader')
@@ -21,9 +21,9 @@
     <x-toast />
 
     <header class="st-topbar">
-        <div class="st-shell flex flex-wrap items-center gap-3 py-3">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 font-bold text-ink">
-                <span class="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-sm font-black text-white shadow">ST</span>
+        <div class="st-shell flex min-h-14 flex-wrap items-center gap-3 py-2">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 font-bold text-white">
+                <span class="grid size-8 place-items-center rounded bg-blue-600 text-xs font-bold text-white">ST</span>
                 <span class="truncate">{{ $settings->get('general.organization_name', config('app.name', 'StageTrack')) }}</span>
             </a>
             <div class="ms-auto flex items-center gap-2">
@@ -33,20 +33,20 @@
                 <div class="st-icon-btn" title="Toggle light / dark mode">
                     <x-theme-switch simple only-icons />
                 </div>
-                <a href="{{ route('account.profile') }}" class="hidden items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-ink hover:bg-hover sm:inline-flex">
-                    <span class="grid size-8 place-items-center rounded-full bg-violet-600 text-xs font-bold text-white">{{ \Illuminate\Support\Str::of(auth()->user()->name)->explode(' ')->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}</span>
+                <a href="{{ route('account.profile') }}" class="hidden items-center gap-2 rounded px-2 py-1.5 text-sm font-semibold text-gray-200 hover:bg-gray-700 sm:inline-flex">
+                    <span class="grid size-8 place-items-center rounded-full bg-blue-700 text-xs font-bold text-white">{{ \Illuminate\Support\Str::of(auth()->user()->name)->explode(' ')->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}</span>
                     {{ auth()->user()->name }}
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="st-icon-btn text-red-600 dark:text-red-400" title="Sign out" aria-label="Sign out">
+                    <button type="submit" class="st-icon-btn" title="Sign out" aria-label="Sign out">
                         <x-icon name="arrow-right-start-on-rectangle" class="size-5" />
                     </button>
                 </form>
             </div>
         </div>
 
-        <nav aria-label="Modules" class="st-shell pb-3">
+        <nav aria-label="Modules" class="st-shell">
             <ul class="st-module-rail">
                 @foreach ($modules as $module)
                     <li>
@@ -65,7 +65,7 @@
     @if ($current)
         <nav aria-label="{{ $current['label'] }} pages" class="st-subnav" style="--mod: {{ $current['color'] }}">
             <div class="st-shell flex flex-wrap items-center gap-x-1 gap-y-2 py-2">
-                <span class="me-2 hidden items-center gap-2 text-sm font-bold md:inline-flex" style="color: var(--mod)">
+                <span class="me-2 hidden items-center gap-2 text-sm font-bold text-ink md:inline-flex">
                     <x-icon :name="$current['icon']" class="size-5" /> {{ $current['label'] }}
                 </span>
                 @foreach (collect($current['tabs'])->where('action', false) as $tab)

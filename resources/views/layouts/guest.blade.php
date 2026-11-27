@@ -8,7 +8,7 @@
     <title>@yield('title', config('app.name', 'StageTrack Enterprise'))</title>
     <tallstackui:script />
     @livewireStyles
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="st-app st-form-controls min-h-screen font-sans antialiased" x-cloak>
     @include('layouts.partials.page-loader')

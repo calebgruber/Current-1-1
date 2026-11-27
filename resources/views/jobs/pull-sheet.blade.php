@@ -1,16 +1,42 @@
 @component('layouts.app')
-<div class="mx-auto max-w-7xl space-y-5">
-    <div class="flex flex-wrap items-end justify-between gap-3"><h1 class="text-2xl font-bold">Pull sheet · {{ $job['number'] }} {{ $job['name'] }}</h1><a class="text-primary-700 underline" href="{{ route('jobs.show', $job['id']) }}">Back to job</a></div>
-    <p>Picked {{ $sheet['totals']['picked'] }} / {{ $sheet['totals']['pull'] }}</p>
+<div class="mx-auto max-w-7xl space-y-4">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <a class="text-xs font-medium text-accent hover:underline" href="{{ route('jobs.show', $job['id']) }}">Back to job</a>
+            <h1 class="mt-1 text-xl font-bold tracking-tight text-ink">Pull sheet</h1>
+            <p class="mt-1 text-sm text-muted">{{ $job['number'] }} · {{ $job['name'] }}</p>
+        </div>
+        <div class="rounded-lg border border-line bg-surface px-4 py-2">
+            <p class="text-xs font-medium uppercase tracking-wide text-muted">Picked / pull</p>
+            <p class="mt-1 text-lg font-semibold tabular-nums text-ink">{{ $sheet['totals']['picked'] }} <span class="text-muted">/</span> {{ $sheet['totals']['pull'] }}</p>
+        </div>
+    </div>
+
     @forelse($sheet['sections'] as $section)
-        <x-card bordered shadowless header="{{ $section['name'] }}">
-            <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr class="border-b">@foreach(['Product','Location','Required','Spare','Pull','Picked'] as $heading)<th class="p-3">{{ $heading }}</th>@endforeach</tr></thead><tbody>
-                @foreach($section['lines'] as $line)
-                    <tr class="border-b"><td class="p-3">{{ $line['product'] }} {{ $line['sku'] }}</td><td class="p-3">{{ $line['location'] ?: '—' }}</td><td class="p-3">{{ $line['required'] }}</td><td class="p-3">{{ $line['spare'] }}</td><td class="p-3">{{ $line['pull'] }}</td><td class="p-3">{{ $line['picked'] }}</td></tr>
-                    @foreach($line['children'] as $child)<tr class="border-b"><td class="p-3 pl-7">↳ {{ $child['product'] }} {{ $child['sku'] }}</td><td class="p-3">{{ $child['location'] ?: '—' }}</td><td class="p-3">{{ $child['required'] }}</td><td class="p-3">{{ $child['spare'] }}</td><td class="p-3">{{ $child['pull'] }}</td><td class="p-3">{{ $child['picked'] }}</td></tr>@endforeach
-                @endforeach
-            </tbody></table></div>
-        </x-card>
-    @empty<p class="text-gray-500">No equipment allocated.</p>@endforelse
+        <section class="st-card overflow-hidden">
+            <h2 class="border-b border-line bg-subtle px-4 py-2 text-sm font-semibold">{{ $section['name'] }}</h2>
+            <div class="overflow-x-auto">
+                <table class="st-table">
+                    <thead class="bg-subtle/50"><tr>@foreach(['Product','Location','Required','Spare','Pull','Picked'] as $heading)<th scope="col">{{ $heading }}</th>@endforeach</tr></thead>
+                    <tbody>
+                        @foreach($section['lines'] as $line)
+                            <tr>
+                                <td><span class="font-medium">{{ $line['product'] }}</span> <span class="text-muted">{{ $line['sku'] }}</span></td>
+                                <td>{{ $line['location'] ?: '—' }}</td><td class="st-num">{{ $line['required'] }}</td><td class="st-num">{{ $line['spare'] }}</td><td class="st-num font-semibold">{{ $line['pull'] }}</td><td class="st-num">{{ $line['picked'] }}</td>
+                            </tr>
+                            @foreach($line['children'] as $child)
+                                <tr>
+                                    <td><span class="inline-block pl-4"><span aria-hidden="true" class="text-muted">↳</span> <span class="sr-only">Accessory for {{ $line['product'] }}:</span> {{ $child['product'] }} <span class="text-muted">{{ $child['sku'] }}</span></span></td>
+                                    <td>{{ $child['location'] ?: '—' }}</td><td class="st-num">{{ $child['required'] }}</td><td class="st-num">{{ $child['spare'] }}</td><td class="st-num font-semibold">{{ $child['pull'] }}</td><td class="st-num">{{ $child['picked'] }}</td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @empty
+        <div class="st-card p-4 text-sm text-muted">No equipment allocated.</div>
+    @endforelse
 </div>
 @endcomponent

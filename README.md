@@ -2,9 +2,9 @@
 
 **Equipment, production and rental management for performing arts.** StageTrack is a modern 1:1 workflow replacement for Current RMS. It is built for educational theatre programs, performing arts centers, university production departments, electrics and audio shops, event spaces and rental operations, and it can be self-hosted on ordinary **cPanel shared hosting** with no Docker and no command line.
 
-> **Development status:** The interface has been migrated to Blade, Livewire, and TallStackUI, but the migration still needs dependency installation and full runtime verification before production use.
+> **Development status:** The interface is being migrated to Flowbite. Existing pages still use TallStackUI alongside Blade and Livewire; the migration and runtime verification are not complete.
 
-> Built with Laravel 12 · Livewire 4 · TallStackUI 4 · Blade · Tailwind CSS v4 · MySQL 8
+> Built with Laravel 12 · Livewire 4 · Flowbite · TallStackUI 4 · Blade · Tailwind CSS v4 · MySQL 8
 
 ## Planned feature highlights
 
@@ -24,7 +24,7 @@
 - **Security.** Sign in with username or email; TOTP 2FA with recovery codes; passkeys (Windows Hello, Touch ID, Face ID, security keys); session management; configurable password, lockout and 2FA policies; and a full audit log.
 - **Roles you define.** About 130 granular capabilities. No roles are hard-coded.
 - **Web administration.** Setup wizard, migrations (run, review, roll back), backups and restore, logs, health, storage, cache and one-click updates, all from the browser.
-- **Colour-coded module interface.** Features are grouped into modules (Home, Jobs, Warehouse, Inventory, Maintenance, Contacts, Documents, Reports, Settings, Account), each with its own colour and icon. The active module shows its pages and primary actions as sub-tabs, which wrap instead of running off the page. Modules and tabs are permission-aware and defined in `app/Support/Navigation/ModuleNavigation.php`. Every page has a light/dark switch and a "thinking" loader during navigation and form submits (add `data-no-loader` to opt a link or form out).
+- **Module interface.** A compact navigation bar groups features by module, with contextual sub-tabs and primary actions. Modules and tabs are permission-aware and defined in `app/Support/Navigation/ModuleNavigation.php`. The app, sign-in and setup layouts have a light/dark switch. The page loader can be disabled for a link or form with `data-no-loader`.
 - **Fast, keyboard-first UX.** ⌘K command palette and global search (exact barcode/serial matches first), `g i` / `g j` / `g w` / `g a` navigation, dark mode, a responsive layout and WCAG 2.2 AA.
 
 ## Quick start
@@ -87,7 +87,7 @@ app/Support/             shared traits (Auditable, Searchable, HasCustomFields) 
 config/permissions.php   permission catalog
 config/stagetrack.php    app version, backups, updates, cron token, search
 database/migrations/     schema
-resources/views/         Blade pages and shared TallStackUI layouts
+resources/views/         Blade pages and shared layouts
 tests/Unit|Feature/{Module}
 docs/                    planning & architecture documentation
 ```

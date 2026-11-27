@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><meta name="color-scheme" content="dark"><title>Warehouse display · {{ config('app.name') }}</title><tallstackui:script />@livewireStyles @vite(['resources/css/app.css'])</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><meta name="color-scheme" content="dark"><title>Warehouse display · {{ config('app.name') }}</title><tallstackui:script />@livewireStyles @vite(['resources/css/app.css', 'resources/js/app.js'])</head>
 <body class="st-form-controls min-h-screen bg-zinc-950 text-zinc-50">
     @include('layouts.partials.page-loader')
 <main class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6" x-data="warehouseDisplay({{ $job['id'] ?? 'null' }}, '{{ $initialMode }}')">
