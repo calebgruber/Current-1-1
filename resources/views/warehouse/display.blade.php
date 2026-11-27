@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><meta name="color-scheme" content="dark"><title>Warehouse display · {{ config('app.name') }}</title><tallstackui:script />@livewireStyles @vite(['resources/css/app.css'])</head>
-<body class="min-h-screen bg-zinc-950 text-zinc-50">
+<body class="st-form-controls min-h-screen bg-zinc-950 text-zinc-50">
 <main class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6" x-data="warehouseDisplay({{ $job['id'] ?? 'null' }}, '{{ $initialMode }}')">
     <header class="flex flex-wrap items-center justify-between gap-4"><h1 class="text-3xl font-semibold">Warehouse display</h1><button type="button" class="rounded border border-zinc-700 px-3 py-2" @click="fullscreen">Fullscreen</button><a class="rounded border border-zinc-700 px-3 py-2" href="{{ route('dashboard') }}">Exit display</a></header>
     <div class="flex flex-wrap gap-3"><label>Job <select class="rounded border p-2 dark:bg-dark-700" @change="changeJob"><option value="">Select a job</option>@foreach($jobs as $j)<option value="{{ $j['id'] }}" @selected(($job['id'] ?? null) === $j['id'])>{{ $j['number'] }} · {{ $j['name'] }}</option>@endforeach @if($job && !collect($jobs)->contains('id', $job['id']))<option value="{{ $job['id'] }}" selected>{{ $job['number'] }} · {{ $job['name'] }}</option>@endif</select></label>

@@ -10,7 +10,7 @@
     @livewireStyles
     @vite(['resources/css/app.css'])
 </head>
-<body class="min-h-screen bg-white font-sans antialiased dark:bg-dark-800" x-cloak>
+<body class="st-form-controls min-h-screen bg-white font-sans antialiased dark:bg-dark-800" x-cloak>
     <div class="flex min-h-screen flex-col items-center justify-center px-4 py-12">
         <div class="mb-8 flex items-center gap-2 text-lg font-semibold">
             <span class="grid size-8 place-items-center rounded-lg bg-primary-600 text-sm font-bold text-white">ST</span>

@@ -10,7 +10,7 @@
     @livewireStyles
     @vite(['resources/css/app.css'])
 </head>
-<body class="min-h-screen bg-white font-sans antialiased dark:bg-dark-800" x-cloak>
+<body class="st-form-controls min-h-screen bg-white font-sans antialiased dark:bg-dark-800" x-cloak>
     @php($settings = app(\App\Domain\Settings\Services\SettingsRepository::class))
     <x-layout>
         <x-slot:top>

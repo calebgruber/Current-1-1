@@ -8,8 +8,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 use Throwable;
 
 class SystemController extends Controller
@@ -40,5 +42,53 @@ class SystemController extends Controller
         }
 
         return back()->with('success', ucfirst($cache).' cache cleared.');
+    }
+
+    public function migrate(Request $request): RedirectResponse
+    {
+        $request->validate(['confirmation' => ['required', 'string', Rule::in(['MIGRATE'])]]);
+
+        $lock = null;
+        $acquired = false;
+
+        try {
+            AuditLog::record('system.migrations_requested', null, [], [], 'Pending database migrations requested');
+
+            $lock = Cache::lock('system.migrations', 3600);
+            $acquired = $lock->get();
+
+            if (! $acquired) {
+                AuditLog::record('system.migrations_failed', null, [], ['reason' => 'already_running'], 'Migration request blocked by an active migration lock');
+
+                return back()->with('error', 'Another migration request is already running. Wait for it to finish.');
+            }
+
+            $result = Artisan::call('migrate', ['--force' => true]);
+            if ($result !== 0) {
+                throw new RuntimeException('Database migrations failed with exit code '.$result.'.');
+            }
+
+            AuditLog::record('system.migrations_succeeded', null, [], [], 'Pending database migrations completed');
+
+            return back()->with('success', 'Pending database migrations completed.');
+        } catch (Throwable $e) {
+            report($e);
+
+            try {
+                AuditLog::record('system.migrations_failed', null, [], [], 'Database migration request failed; check application logs');
+            } catch (Throwable $auditError) {
+                report($auditError);
+            }
+
+            return back()->with('error', 'Database migrations failed. Check the application logs before retrying.');
+        } finally {
+            if ($acquired) {
+                try {
+                    $lock->release();
+                } catch (Throwable $lockError) {
+                    report($lockError);
+                }
+            }
+        }
     }
 }

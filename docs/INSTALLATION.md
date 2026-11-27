@@ -128,9 +128,11 @@ CLI equivalent (optional): `php artisan stagetrack:backup`.
 1. Take a backup (the updater offers this automatically).
 2. **Check for updates** reads `STAGETRACK_UPDATE_FEED`; or **upload** a release zip manually.
 3. The updater verifies the archive (rejects absolute paths and `..` entries — zip-slip protection), enables maintenance mode, extracts over the installation (preserving `.env`, `storage/`, `installed.lock`), runs migrations, clears/rebuilds caches, and disables maintenance mode.
-4. Review *Administration → Migrations* for status; a failed migration can be rolled back there.
+4. Review *Administration → System* for migration status. There is no web rollback action; inspect application logs and restore a verified backup or obtain deployment support if a migration fails.
 
-**Manual update (no updater):** upload and extract the new release over the old one (excluding `.env` and `storage/`), then open *Administration → Migrations* → *Run pending* and *Administration → Cache* → *Clear all*.
+**Manual update (no updater):** take and verify a database backup, then upload and extract the new release over the old one (excluding `.env` and `storage/`). Open *Administration → System* → *Run pending migrations*, confirm your password if prompted, return to System and type `MIGRATE` to submit. Viewing System requires `admin.system.view`; running migrations requires `admin.system.admin`. The CSRF-protected action runs only `php artisan migrate --force` on the default database and installed, registered migration paths. It accepts no command, path, or database options, does not install application code, and does not reset the database. Migrations can change or remove data; no backup is taken automatically.
+
+Migration requests and success/failure outcomes are audited; command output is not shown in the browser. A shared cache lock blocks simultaneous System submissions and is released when the request finishes. Use a cache store supporting atomic locks shared by all web workers (database/Redis, or file cache on a shared filesystem); do not use per-worker array caches in production. The lock expires after one hour: keep web migration execution below that duration. If a request times out or fails, check the logs and migration status before retrying; do not bypass an active lock or run CLI/deployment migrations concurrently. If the cache/lock store is unavailable, the web action fails without running migrations. Clear individual configuration, route, or view caches from the same System screen as needed; configuration and route cache rebuilding remains a deployment task.
 
 ## 8. Troubleshooting
 

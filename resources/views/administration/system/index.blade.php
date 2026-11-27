@@ -1,6 +1,6 @@
 @component('layouts.app')
 <div class="mx-auto max-w-5xl space-y-5">
-    <div><h1 class="text-2xl font-bold">System</h1><p class="text-sm text-gray-500">Read-only health and migration status, and framework cache maintenance.</p></div>
+    <div><h1 class="text-2xl font-bold">System</h1><p class="text-sm text-gray-500">Health and migration status, pending database migrations, and framework cache maintenance.</p></div>
     @if(session('success'))<x-alert color="green">{{ session('success') }}</x-alert>@endif
     @if(session('error'))<x-alert color="red">{{ session('error') }}</x-alert>@endif
     <x-card bordered shadowless><h2 class="mb-3 text-lg font-semibold">Health</h2><p>Database connection: {{ $status['database'] === 'ok' ? 'Available' : 'Unavailable' }}</p><p>Storage directory: {{ $status['storage_writable'] ? 'Writable' : 'Not writable' }}</p><p class="mt-2 text-sm text-gray-500">These checks do not test queues, backups, scheduler, or individual storage disks.</p></x-card>
@@ -10,7 +10,18 @@
             <p>{{ $status['migrations']['applied'] }} recorded · {{ count($status['migrations']['pending'] ?? []) }} pending</p>
             @if($status['migrations']['pending'])<ul class="list-inside list-disc text-sm">@foreach($status['migrations']['pending'] as $name)<li>{{ $name }}</li>@endforeach</ul>@endif
         @else<p>{{ $status['migrations']['status'] === 'repository_missing' ? 'Migration repository is missing.' : 'Migration status is unavailable.' }}</p>@endif
-        <p class="mt-2 text-sm text-gray-500">Status covers the default database and registered migration paths. No migrations are run here.</p>
+        <p class="mt-2 text-sm text-gray-500">Status covers the default database and registered migration paths.</p>
+        @can('admin.system.admin')
+            <p class="mt-3 font-semibold">Take and verify a database backup before changing the schema.</p>
+            <p class="mt-2 text-sm text-gray-500">Runs only pending migrations from the installed application on the default database. This does not install application code or reset the database. Migrations may change or remove data. Recent password confirmation is required; return here and submit again if prompted.</p>
+            <form method="POST" action="{{ route('admin.system.migrations.run') }}" class="mt-3 space-y-2">
+                @csrf
+                <label for="migration-confirmation" class="block text-sm font-medium">Type MIGRATE to confirm you have a verified backup and want to run pending migrations.</label>
+                <input id="migration-confirmation" name="confirmation" type="text" required autocomplete="off" pattern="MIGRATE" class="rounded border border-gray-300 px-3 py-2">
+                @error('confirmation')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                <div><x-button type="submit" color="primary">Run pending migrations</x-button></div>
+            </form>
+        @endcan
     </x-card>
     @can('admin.system.admin')
         <x-card bordered shadowless>
